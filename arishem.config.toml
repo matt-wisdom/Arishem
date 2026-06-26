@@ -1,0 +1,22 @@
+# Arishem Configuration File
+
+[llm]
+# LLM Provider: "gemini", "openai", or "mock" (for testing)
+provider = "openai"
+# Specific model identifier to use
+model = "qwen.qwen3-coder-30b-a3b-v1:0"
+# API keys are read from environment variables (GEMINI_API_KEY / OPENAI_API_KEY)
+# but can optionally be specified here if needed.
+# api_key = "..."
+api_base = "https://bedrock-mantle.eu-west-1.api.aws/v1"
+
+[engine]
+# Default max number of turns per probe session
+default_budget = 3
+# Default concurrency limit for running parallel sessions
+default_concurrency = 1
+# Default testing mode: "whitebox", "blackbox", or "both"
+default_mode = "both"
+# Optional RPM (Requests Per Minute) rate limiting for LLM requests (e.g. 60)
+rate_limit_rpm = 20
+

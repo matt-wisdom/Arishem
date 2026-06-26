@@ -1,0 +1,229 @@
+# Arishem — Autonomous AI Security Testing Engine
+
+Arishem is an agentic AI security testing engine that probes AI systems for vulnerabilities by behaving like an active human penetration tester. 
+
+It reads function signatures and docstrings of exposed functions (prefixed with `arishem_`) statically using AST analysis, formulates adversarial security goals, executes multi-turn probe sessions to bypass safety controls, and automatically compiles detailed findings.
+
+---
+
+## 🛠 Features
+
+1. **Static Target Discovery**: Extracts function parameters, type hints, docstrings, and source code statically using AST analysis (never imports or executes the target module during loader step).
+2. **Pluggable Attack Taxonomy**: Fully modular attack configuration registry. Ship with 9 built-in attack classes under `arishem/attack_classes/` which can be extended dynamically.
+3. **Multi-Turn Probing Loop**: Evaluates safety boundaries across a recursive execution cycle (probes, catches crashes, classifies results, and decides whether to continue, pivot, escalate, or close the finding).
+4. **Rich Multi-Format Reporting**:
+   - **Console**: Live progress monitor table and colored finding summaries via `rich`.
+   - **HTML**: Standalone, interactive dark-themed dashboard detailing trace histories, classifications, and remediation.
+   - **SARIF**: CI/CD and editor problems tab integration.
+   - **JSON**: Structured findings list for pipeline integrations.
+
+---
+
+## 🛡️ Supported Vulnerabilities
+
+Arishem includes 9 pluggable attack classes out-of-the-box (configured under `arishem/attack_classes/`):
+
+* **Instruction/Goal Hijacking (`goal_hijacking`)**: Overrides system boundaries using jailbreaks, roleplay, suffix injection, or tag manipulation.
+* **Cascading / Runaway Failures (`cascading_failure`)**: Triggers infinite loops, memory leaks, recursive call overflows, or high resource utilization.
+* **Memory / Context Poisoning (`context_poisoning`)**: Injects malicious payloads into history, dynamic database contexts, or system prompt stores.
+* **Insecure Delegation and Message Spoofing (`insecure_delegation`)**: Spoofs agent/assistant identities, forges message headers, and attempts verification bypass.
+* **Persistent Misalignment / Drift (`persistent_drift`)**: Slowly shifts agent behaviors and safety policies over multi-turn interactions.
+* **Privilege and Identity Abuse (`privilege_abuse`)**: Explores privilege escalation boundaries or administrative action execution.
+* **Tool/Function Misuse & Chaining (`tool_misuse`)**: Focuses on malicious argument passing and unintended/harmful chaining of tool invocations.
+* **Human Trust Exploitation (`trust_exploitation`)**: Employs social engineering, authority spoofing, or fake error notifications.
+* **Unsafe Code / Shell Command Execution (`unsafe_execution`)**: Attempts OS shell execution, arbitrary code injection, or sandbox evasion.
+
+---
+
+## 🏗 Project Structure
+
+```
+arishem/
+├── arishem/
+│   ├── __init__.py
+│   ├── cli.py              # entrypoint & arguments parser
+│   ├── loader.py           # AST target module signature parser
+│   ├── orchestrator.py     # async orchestrator running parallel probe sessions
+│   ├── probe_session.py    # recursive probing execution loop
+│   ├── llm.py              # schema-constrained JSON API client wrapper (Gemini/OpenAI/Mock)
+│   ├── generator.py        # generates adversarial payloads given history
+│   ├── observer.py         # classifies outputs (blocked, partial, leaked, unexpected, error)
+│   ├── judge.py            # scores findings & generates remediation guidelines
+│   ├── attack_classes/     # pluggable attack configuration directories
+│   │   ├── base.py         # configuration registration and discovery
+│   │   ├── cascading_failure.py
+│   │   ├── context_poisoning.py
+│   │   ├── goal_hijacking.py
+│   │   ├── insecure_delegation.py
+│   │   ├── persistent_drift.py
+│   │   ├── privilege_abuse.py
+│   │   ├── tool_misuse.py
+│   │   ├── trust_exploitation.py
+│   │   └── unsafe_execution.py
+│   ├── models.py           # core dataclasses
+│   ├── store.py            # results save/load serialization
+│   └── reporters/          # reporting formats
+│       ├── console.py
+│       ├── html.py
+│       └── sarif.py
+├── tests/                  # full test suite (pytest)
+├── target_example.py       # example target under test
+├── arishem.config.toml     # default engine configuration
+└── pyproject.toml          # metadata and dependency configuration
+```
+
+---
+
+## ⚙️ Configuration (`arishem.config.toml`)
+
+Create a configuration file in the project folder to set model defaults.
+
+```toml
+[llm]
+# Set provider to "gemini", "openai", or "mock"
+provider = "gemini"
+model = "gemini-2.5-flash"
+# Optionally override base url / key (otherwise, GEMINI_API_KEY/OPENAI_API_KEY is read from environment)
+# api_key = "..."
+# api_base = "..."
+
+[engine]
+default_budget = 8
+default_concurrency = 4
+default_mode = "both"
+# Optional RPM (Requests Per Minute) rate limiting for LLM requests (e.g. 60)
+# rate_limit_rpm = 60
+
+```
+
+---
+
+## 🚀 CLI Usage
+
+### List Registered Attack Classes
+```bash
+python3 -m arishem.cli list-classes
+```
+
+### Run Active Probing Penetration Test
+Run tests against exposed `arishem_` target functions and save a report.
+```bash
+# Saves an HTML report containing trace evidence
+python3 -m arishem.cli run target_example.py --output report.html
+
+# Run specific classes and modes
+python3 -m arishem.cli run target_example.py --classes goal_hijacking,tool_misuse --mode whitebox --concurrency 4
+```
+
+### Generate Reports from Saved JSON Results
+```bash
+# Generate SARIF report
+python3 -m arishem.cli report results.json --format sarif --output report.sarif --target-src target_example.py
+
+# Print console summary
+python3 -m arishem.cli report results.json --format console
+```
+
+---
+
+## 🔌 Programmatic Embedding
+
+You can embed Arishem inside a larger agent framework as a tool call:
+
+```python
+import asyncio
+from arishem import run_arishem
+
+async def test_agent():
+    # Programmatic entrypoint returning structured Finding objects
+    result = await run_arishem(
+        target_path="target_example.py",
+        mode="both",
+        classes=["goal_hijacking"],
+        concurrency=4
+    )
+    
+    for finding in result.findings:
+        print(f"[{finding.severity.upper()}] {finding.title} in {finding.function_targeted}")
+        print(f"Remediation: {finding.remediation}")
+
+asyncio.run(test_agent())
+```
+
+---
+
+## 💬 Testing Stateful / WebSocket Interfaces
+
+### How Multi-Turn Probing Works
+During execution, the Arishem loop runs target functions statically prefixed with `arishem_` (e.g., `arishem_chat(user_message: str)`). 
+* Every turn inside a session is executed as an **independent, stateless function call** (`func_callable(**probe_kwargs)`).
+* The historical context is maintained on the **agent generator side** (passed inside the LLM prompt history), rather than in the network connection itself.
+
+### Connecting to Stateful or WebSocket Backends
+If the target system under test requires connection persistence (like a WebSocket channel or sticky session cookies), the target function must handle connection setup, payload wrapping, and teardown.
+
+#### Option A: Sticky Session Tracking (Stateful WebSocket per Turn)
+If the server maintains multi-turn state via a session key, design your target function to attach this key on every turn:
+
+```python
+import websockets
+import asyncio
+import json
+
+SESSION_ID = "adversarial-session-999"
+
+async def arishem_chat(user_message: str) -> str:
+    """
+    Stateful WebSocket invocation.
+    """
+    async with websockets.connect("ws://localhost:8000/chat") as ws:
+        payload = {
+            "session_id": SESSION_ID,
+            "message": user_message
+        }
+        await ws.send(json.dumps(payload))
+        response = await ws.recv()
+        return json.loads(response).get("response", "")
+```
+
+#### Option B: Connection Caching (Reusing Sockets across Turns)
+To keep a single persistent connection open across the entire test session instead of reconnecting each turn, you can store a global connection reference at the module level of your target file:
+
+```python
+import websockets
+import asyncio
+import json
+
+_ws_connection = None
+
+async def _get_ws():
+    global _ws_connection
+    if _ws_connection is None or _ws_connection.closed:
+        _ws_connection = await websockets.connect("ws://localhost:8000/chat")
+    return _ws_connection
+
+async def arishem_chat(user_message: str) -> str:
+    """
+    WebSocket chat reusing the same persistent connection socket.
+    """
+    try:
+        ws = await _get_ws()
+        await ws.send(json.dumps({"message": user_message}))
+        res = await ws.recv()
+        return json.loads(res).get("response", "")
+    except Exception as e:
+        return f"WebSocket Error: {e}"
+```
+
+---
+
+## 📦 Local Imports and Module Paths
+
+### Dynamic Import Mechanism
+When running Arishem, the target module specified by the target path is dynamically imported under a unique, runtime-generated package name to prevent namespace conflicts during parallel processing.
+
+### Resolving Local and Relative Imports
+Arishem's loader natively configures the import environment to support standard import behaviors:
+* **Local Absolute Imports** (e.g., `import helper`): The directory containing your target file is automatically appended to `sys.path` during execution. You do not need to manually configure `PYTHONPATH` for adjacent modules.
+* **Relative Imports** (e.g., `from . import helper`): The dynamically loaded module is treated as a package at runtime (with its `__path__` and `__package__` set correctly), enabling standard relative import structures within the target file.
+```

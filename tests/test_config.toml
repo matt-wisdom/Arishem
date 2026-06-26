@@ -1,0 +1,8 @@
+[llm]
+provider = "mock"
+model = "mock-model"
+
+[engine]
+default_budget = 8
+default_concurrency = 4
+default_mode = "both"
