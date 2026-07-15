@@ -1,86 +1,131 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useAuth } from '@clerk/vue'
 
-const integrations = ref<{ provider: string; connected: boolean }[]>([])
-const loading = ref(true)
-const githubToken = ref('')
+const { getToken } = useAuth()
+const integrations = ref([
+  { id: 'github', name: 'GitHub', description: 'Connect repositories for code scanning', connected: false, icon: 'github' },
+  { id: 'slack', name: 'Slack', description: 'Receive alerts in Slack channels', connected: false, icon: 'slack' },
+  { id: 'jira', name: 'Jira', description: 'Create tickets from findings', connected: false, icon: 'jira' },
+])
 
-const fetchIntegrations = async () => {
+const getHeaders = async () => {
+  const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
+  const token = (await (tokenFn as any)()) || localStorage.getItem('token') || ''
+  return { 'Authorization': `Bearer ${token}` }
+}
+
+const checkGithubStatus = async () => {
   try {
-    const res = await fetch('/api/integrations/github', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    })
-    integrations.value = [{ provider: 'github', connected: res.ok }]
+    const headers = await getHeaders()
+    const res = await fetch('/api/integrations/github', { headers })
+    const github = integrations.value.find(i => i.id === 'github')
+    if (github) {
+      github.connected = res.ok
+    }
   } catch (e) {
     console.error(e)
-  } finally {
-    loading.value = false
   }
 }
 
-const connectGitHub = async () => {
-  if (!githubToken.value) return
+onMounted(() => {
+  checkGithubStatus()
+})
+
+const handleConnect = async (id: string) => {
+  if (id !== 'github') {
+    alert('This integration is not supported in the backend yet.')
+    return
+  }
+  const token = prompt('Enter your GitHub Personal Access Token:')
+  if (!token) return
+
   try {
+    const authHeaders = await getHeaders()
     const res = await fetch('/api/integrations/github', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
+        ...authHeaders
       },
-      body: JSON.stringify({ token: githubToken.value })
+      body: JSON.stringify({ token })
     })
-    if (res.ok) await fetchIntegrations()
+    if (!res.ok) throw new Error('Failed to connect to GitHub')
+    alert('GitHub connected successfully!')
+    checkGithubStatus()
   } catch (e) {
-    console.error(e)
+    alert(e instanceof Error ? e.message : 'Unknown error')
   }
 }
 
-const disconnectGitHub = async () => {
+const handleDisconnect = async (id: string) => {
+  if (id !== 'github') return
+  if (!confirm('Are you sure you want to disconnect GitHub?')) return
+
   try {
+    const authHeaders = await getHeaders()
     const res = await fetch('/api/integrations/github', {
       method: 'DELETE',
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
+      headers: authHeaders
     })
-    if (res.ok) await fetchIntegrations()
+    if (!res.ok) throw new Error('Failed to disconnect GitHub')
+    alert('GitHub disconnected successfully!')
+    checkGithubStatus()
   } catch (e) {
-    console.error(e)
+    alert(e instanceof Error ? e.message : 'Unknown error')
   }
 }
-
-onMounted(fetchIntegrations)
 </script>
 
 <template>
   <div class="integrations-page">
-    <header class="header">
-      <h1>Integrations</h1>
-    </header>
-
-    <div class="integration-card">
-      <div class="integration-header">
-        <h2>GitHub</h2>
-        <span v-if="integrations.find(i => i.provider === 'github')?.connected" class="connected">Connected</span>
-        <span v-else class="not-connected">Not Connected</span>
+    <Header><template #title>Integrations</template></Header>
+    <div class="page-content">
+      <div class="integrations-grid">
+        <div v-for="int in integrations" :key="int.id" class="integration-card">
+          <div class="int-icon" :class="int.icon">
+            <svg v-if="int.icon === 'github'" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+            </svg>
+            <svg v-else-if="int.icon === 'slack'" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M5.042 15.165a2.528 2.528 0 01-2.52 2.523A2.528 2.528 0 010 15.165a2.527 2.527 0 012.522-2.52h2.52v2.52zm1.271 0a2.527 2.527 0 012.521-2.52 2.527 2.527 0 012.521 2.52v6.313A2.528 2.528 0 018.834 24a2.528 2.528 0 01-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 01-2.521-2.52A2.528 2.528 0 018.834 0a2.528 2.528 0 012.521 2.522v2.52H8.834zm0 1.271a2.528 2.528 0 012.521 2.521 2.528 2.528 0 01-2.521 2.521H2.522A2.528 2.528 0 010 8.834a2.528 2.528 0 012.522-2.521h6.312zm10.124 2.521a2.528 2.528 0 012.52-2.521A2.528 2.528 0 0124 8.834a2.528 2.528 0 01-2.522 2.521h-2.52V8.834zm-1.271 0a2.528 2.528 0 01-2.521 2.521 2.528 2.528 0 01-2.521-2.521V2.522A2.528 2.528 0 0115.166 0a2.528 2.528 0 012.521 2.522v6.312zm-2.521 10.124a2.528 2.528 0 012.521 2.52A2.528 2.528 0 0115.166 24a2.528 2.528 0 01-2.521-2.522v-2.52h2.521zm0-1.271a2.528 2.528 0 01-2.521-2.521 2.528 2.528 0 012.521-2.521h6.312A2.528 2.528 0 0124 15.166a2.528 2.528 0 01-2.522 2.521h-6.312z"/>
+            </svg>
+            <svg v-else viewBox="0 0 24 24" fill="currentColor">
+              <path d="M11.571 11.513H0a5.218 5.218 0 005.232 5.215h2.13v2.057A5.215 5.215 0 0012.575 24V12.851a1.338 1.338 0 00-1.004-1.338zm5.723-5.756H5.736a5.215 5.215 0 005.215 5.214h2.129v2.058a5.218 5.218 0 005.215 5.214V7.089a1.332 1.332 0 00-1.001-1.332zM23.013 0H11.455a5.215 5.215 0 005.215 5.215h2.129v2.057A5.215 5.215 0 0024 12.574V1.332A1.338 1.338 0 0023.013 0z"/>
+            </svg>
+          </div>
+          <div class="int-info">
+            <h3>{{ int.name }}</h3>
+            <p>{{ int.description }}</p>
+          </div>
+          <div class="int-status">
+            <span v-if="int.connected" class="connected-badge">Connected</span>
+            <span v-else class="disconnected-badge">Not Connected</span>
+          </div>
+          <button v-if="int.connected" @click="handleDisconnect(int.id)" class="disconnect-btn">Disconnect</button>
+          <button v-else @click="handleConnect(int.id)" class="connect-btn">Connect</button>
+        </div>
       </div>
-      <p>Connect your GitHub account to enable repository scanning and GitHub Actions integration.</p>
-      <div v-if="!integrations.find(i => i.provider === 'github')?.connected" class="connect-form">
-        <input v-model="githubToken" type="password" placeholder="GitHub Personal Access Token" />
-        <button @click="connectGitHub">Connect</button>
-      </div>
-      <button v-else @click="disconnectGitHub" class="disconnect-btn">Disconnect</button>
     </div>
   </div>
 </template>
 
 <style scoped>
-.integrations-page { padding: 2rem; max-width: 800px; margin: 0 auto; }
-.header { margin-bottom: 2rem; }
-.integration-card { background: white; padding: 1.5rem; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.integration-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-.connected { color: #059669; }
-.not-connected { color: #dc2626; }
-.connect-form { display: flex; gap: 0.5rem; margin-top: 1rem; }
-.connect-form input { flex: 1; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-.connect-form button { padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; }
-.disconnect-btn { margin-top: 1rem; padding: 0.5rem 1rem; background: #dc2626; color: white; border: none; border-radius: 6px; cursor: pointer; }
+.integrations-page { min-height: 100%; }
+.page-content { padding-top: 24px; }
+.integrations-grid { display: flex; flex-direction: column; gap: 16px; }
+.integration-card { display: flex; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 24px; }
+.int-icon { width: 56px; height: 56px; border-radius: 14px; display: flex; align-items: center; justify-content: center; }
+.int-icon.github { background: #24292e; color: white; }
+.int-icon.slack { background: #4A154B; color: white; }
+.int-icon.jira { background: #0052CC; color: white; }
+.int-icon svg { width: 28px; height: 28px; }
+.int-info { flex: 1; }
+.int-info h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.int-info p { font-size: 13px; color: var(--text-muted); }
+.connected-badge { padding: 6px 14px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 8px; font-size: 13px; font-weight: 500; }
+.disconnected-badge { padding: 6px 14px; background: var(--bg-secondary); color: var(--text-muted); border-radius: 8px; font-size: 13px; font-weight: 500; }
+.disconnect-btn { padding: 10px 20px; background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; font-size: 14px; font-weight: 500; }
+.disconnect-btn:hover { background: rgba(239, 68, 68, 0.1); }
+.connect-btn { padding: 10px 20px; background: linear-gradient(135deg, var(--accent), #2563eb); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; }
 </style>

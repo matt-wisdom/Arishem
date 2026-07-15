@@ -16,7 +16,25 @@ from arishem.reporters.sarif import generate_sarif_report
 
 console = Console()
 
+def load_env():
+    import os
+    for path in [".env", "../.env", "../../.env"]:
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith("#"):
+                        continue
+                    parts = line.split("=", 1)
+                    if len(parts) == 2:
+                        key, val = parts[0].strip(), parts[1].strip()
+                        val = val.strip("'\"")
+                        if key not in os.environ:
+                            os.environ[key] = val
+            break
+
 def main():
+    load_env()
     parser = argparse.ArgumentParser(
         description="Arishem — Autonomous AI Security Testing Engine",
         prog="arishem"

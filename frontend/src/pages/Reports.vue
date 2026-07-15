@@ -1,80 +1,111 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import type { Report } from '@/stores/types'
+import { useAuth } from '@clerk/vue'
 
-const reports = ref<Report[]>([])
+const { getToken } = useAuth()
+const reports = ref<any[]>([])
 const loading = ref(true)
+const error = ref<string | null>(null)
 
-const fetchReports = async () => {
+const getHeaders = async () => {
+  const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
+  const token = (await (tokenFn as any)()) || localStorage.getItem('token') || ''
+  return { 'Authorization': `Bearer ${token}` }
+}
+
+const loadReports = async () => {
+  loading.value = true
+  error.value = null
   try {
-    const res = await fetch('/api/reports', {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    })
+    const headers = await getHeaders()
+    const res = await fetch('/api/reports', { headers })
     if (!res.ok) throw new Error('Failed to fetch reports')
     reports.value = await res.json()
   } catch (e) {
-    console.error(e)
+    error.value = e instanceof Error ? e.message : 'Unknown error'
   } finally {
     loading.value = false
   }
 }
 
-const downloadReport = async (report: Report, format: string) => {
-  try {
-    const res = await fetch(`/api/reports/${report.id}/download?format=${format}`, {
-      headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-    })
-    if (!res.ok) throw new Error('Failed to get download URL')
-    const { url } = await res.json()
-    window.open(url, '_blank')
-  } catch (e) {
-    console.error(e)
+onMounted(() => {
+  loadReports()
+})
+
+const getReportName = (report: any) => {
+  if (report.storage_key) {
+    const parts = report.storage_key.split('/')
+    return parts[parts.length - 1] || 'report-' + report.id
   }
+  return 'report-' + report.id
 }
 
-onMounted(fetchReports)
+const getReportType = (report: any) => {
+  return report.scan_id ? 'Scan Report' : 'LLM Pentest Report'
+}
+
+const downloadReport = async (id: string, format: string) => {
+  try {
+    const headers = await getHeaders()
+    const res = await fetch(`/api/reports/${id}/download?format=${format}`, { headers })
+    if (!res.ok) throw new Error('Failed to generate download link')
+    const data = await res.json()
+    if (data.url) {
+      window.open(data.url, '_blank')
+    }
+  } catch (e) {
+    alert(e instanceof Error ? e.message : 'Failed to download report')
+  }
+}
 </script>
 
 <template>
   <div class="reports-page">
-    <header class="header">
-      <h1>Reports</h1>
-    </header>
-
-    <div v-if="loading" class="loading">Loading...</div>
-    <table v-else class="reports-table">
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Format</th>
-          <th>Created</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="report in reports" :key="report.id">
-          <td>{{ report.id }}</td>
-          <td>{{ report.format.toUpperCase() }}</td>
-          <td>{{ new Date(report.created_at).toLocaleDateString() }}</td>
-          <td>
-            <div class="download-btns">
-              <button @click="downloadReport(report, 'html')">HTML</button>
-              <button @click="downloadReport(report, 'md')">MD</button>
-              <button @click="downloadReport(report, 'sarif')">SARIF</button>
-            </div>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <Header><template #title>Reports</template></Header>
+    <div class="page-content">
+      <div v-if="loading && reports.length === 0" class="loading-placeholder">Loading reports...</div>
+      <div v-else-if="reports.length === 0" class="empty-placeholder">No reports generated yet.</div>
+      <div v-else class="reports-grid">
+        <div v-for="report in reports" :key="report.id" class="report-card">
+          <div class="report-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
+              <path d="M14 2v6h6M16 13H8M16 17H8" />
+            </svg>
+          </div>
+          <div class="report-info">
+            <h3>{{ getReportName(report) }}</h3>
+            <p>{{ getReportType(report) }} • {{ new Date(report.created_at).toLocaleString() }}</p>
+          </div>
+          <div class="report-meta">
+            <span class="format-badge">{{ report.format.toUpperCase() }}</span>
+          </div>
+          <div class="report-actions">
+            <button @click="downloadReport(report.id, 'html')" class="action-btn">HTML</button>
+            <button @click="downloadReport(report.id, 'md')" class="action-btn">MD</button>
+            <button @click="downloadReport(report.id, 'sarif')" class="action-btn">SARIF</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
-.reports-page { padding: 2rem; max-width: 1200px; margin: 0 auto; }
-.header { margin-bottom: 2rem; }
-.reports-table { width: 100%; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-.reports-table th, .reports-table td { padding: 1rem; text-align: left; border-bottom: 1px solid #eee; }
-.download-btns { display: flex; gap: 0.5rem; }
-.download-btns button { padding: 0.25rem 0.5rem; background: #f3f4f6; border: none; border-radius: 4px; cursor: pointer; font-size: 0.75rem; }
-.download-btns button:hover { background: #e5e7eb; }
+.reports-page { min-height: 100%; }
+.page-content { padding-top: 24px; }
+.reports-grid { display: flex; flex-direction: column; gap: 12px; }
+.report-card { display: flex; align-items: center; gap: 20px; background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 20px 24px; transition: all 0.2s ease; }
+.report-card:hover { background: var(--bg-card-hover); }
+.report-icon { width: 48px; height: 48px; background: rgba(6, 182, 212, 0.15); border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.report-icon svg { width: 24px; height: 24px; color: #06b6d4; }
+.report-info { flex: 1; }
+.report-info h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.report-info p { font-size: 13px; color: var(--text-muted); }
+.report-meta { display: flex; align-items: center; gap: 12px; }
+.format-badge { padding: 4px 10px; background: var(--bg-secondary); border-radius: 6px; font-size: 12px; font-weight: 600; color: var(--text-secondary); }
+.size { font-size: 13px; color: var(--text-muted); width: 70px; text-align: right; }
+.report-actions { display: flex; gap: 8px; }
+.action-btn { padding: 8px 16px; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); font-size: 13px; font-weight: 500; }
+.action-btn:hover { background: var(--bg-card-hover); border-color: var(--accent); }
 </style>

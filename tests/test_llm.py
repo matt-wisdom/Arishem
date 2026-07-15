@@ -168,3 +168,47 @@ def test_gemini_standard_call():
     asyncio.run(run_test())
 
 
+def test_litellm_standard_call():
+    async def run_test():
+        from unittest.mock import MagicMock, AsyncMock, patch
+
+        config = {
+            "llm": {
+                "provider": "litellm",
+                "api_key": "fake_key",
+                "api_base": "https://api.fake.com/v1",
+                "model": "fake-model"
+            }
+        }
+        
+        mock_response = MagicMock()
+        mock_choice = MagicMock()
+        mock_choice.message.content = '{"action": "probe", "reasoning": "success", "probe": {}}'
+        mock_response.choices = [mock_choice]
+        
+        mock_acompletion = AsyncMock(return_value=mock_response)
+        
+        with patch("litellm.acompletion", mock_acompletion):
+            import arishem.llm
+            res = await arishem.llm.call_llm(
+                config, 
+                "sys", 
+                "Target Function: arishem_chat\n", 
+                arishem.llm.PROBE_GENERATOR_SCHEMA
+            )
+            
+            assert res["action"] == "probe"
+            assert res["reasoning"] == "success"
+            mock_acompletion.assert_called_once_with(
+                model="fake-model",
+                messages=[
+                    {"role": "system", "content": "sys"},
+                    {"role": "user", "content": "Target Function: arishem_chat\n"}
+                ],
+                api_key="fake_key",
+                api_base="https://api.fake.com/v1"
+            )
+
+    asyncio.run(run_test())
+
+

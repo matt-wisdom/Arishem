@@ -2,11 +2,12 @@ import os
 import subprocess
 import tempfile
 import json
+import sys
 import pytest
 
 def test_cli_list_classes():
     res = subprocess.run(
-        ["python3", "-m", "arishem.cli", "list-classes"],
+        [sys.executable, "-m", "arishem.cli", "list-classes"],
         capture_output=True,
         text=True
     )
@@ -22,7 +23,7 @@ def test_cli_run_and_report_flow():
 
         # 1. Test running pen test saving results to JSON
         res_run = subprocess.run([
-            "python3", "-m", "arishem.cli", "run", "target_example.py",
+            sys.executable, "-m", "arishem.cli", "run", "target_example.py",
             "--output", results_json,
             "--classes", "goal_hijacking,tool_misuse"
         ], capture_output=True, text=True)
@@ -38,7 +39,7 @@ def test_cli_run_and_report_flow():
 
         # 2. Test generating HTML report via report subcommand
         res_html = subprocess.run([
-            "python3", "-m", "arishem.cli", "report", results_json,
+            sys.executable, "-m", "arishem.cli", "report", results_json,
             "--format", "html", "--output", html_report
         ], capture_output=True, text=True)
 
@@ -51,7 +52,7 @@ def test_cli_run_and_report_flow():
 
         # 3. Test generating SARIF report via report subcommand
         res_sarif = subprocess.run([
-            "python3", "-m", "arishem.cli", "report", results_json,
+            sys.executable, "-m", "arishem.cli", "report", results_json,
             "--format", "sarif", "--output", sarif_report,
             "--target-src", "target_example.py"
         ], capture_output=True, text=True)

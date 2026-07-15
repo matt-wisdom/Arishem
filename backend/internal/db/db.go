@@ -13,7 +13,7 @@ var Pool *pgxpool.Pool
 func Init() error {
 	databaseURL := os.Getenv("DATABASE_URL")
 	if databaseURL == "" {
-		databaseURL = "postgresql://user:pass@localhost:5432/arishem"
+		databaseURL = "postgresql://launchpad:password@localhost:5432/launchpad"
 	}
 
 	ctx := context.Background()

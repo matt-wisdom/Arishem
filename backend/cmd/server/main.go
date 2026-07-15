@@ -1,10 +1,12 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -20,6 +22,8 @@ import (
 )
 
 func main() {
+	loadEnv()
+
 	if err := db.Init(); err != nil {
 		log.Printf("Warning: failed to initialize database: %v", err)
 	}
@@ -29,9 +33,10 @@ func main() {
 	}
 
 	app := fiber.New(fiber.Config{
-		AppName:      "Arishem",
-		ReadTimeout:  30 * time.Second,
-		WriteTimeout: 30 * time.Second,
+		AppName:        "Arishem",
+		ReadTimeout:    30 * time.Second,
+		WriteTimeout:   30 * time.Second,
+		ReadBufferSize: 32768,
 	})
 
 	app.Use(recover.New())
@@ -75,4 +80,34 @@ func main() {
 	}
 
 	log.Println("Server exited")
+}
+
+func loadEnv() {
+	paths := []string{".env", "../.env", "../../.env"}
+	for _, path := range paths {
+		file, err := os.Open(path)
+		if err != nil {
+			continue
+		}
+		defer file.Close()
+
+		scanner := bufio.NewScanner(file)
+		for scanner.Scan() {
+			line := strings.TrimSpace(scanner.Text())
+			if line == "" || strings.HasPrefix(line, "#") {
+				continue
+			}
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				key := strings.TrimSpace(parts[0])
+				val := strings.TrimSpace(parts[1])
+				val = strings.Trim(val, `"'`)
+				if os.Getenv(key) == "" {
+					os.Setenv(key, val)
+				}
+			}
+		}
+		log.Printf("Loaded environment variables from %s", path)
+		break
+	}
 }

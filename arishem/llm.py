@@ -226,6 +226,38 @@ async def call_llm(
         except Exception as e:
             raise RuntimeError(f"OpenAI API returned error: {e}")
 
+    elif provider == "litellm":
+        try:
+            import litellm
+        except ImportError:
+            raise ImportError("litellm not installed. Please run: pip install litellm")
+
+        api_key = llm_conf.get("api_key") or os.environ.get("LITELLM_API_KEY") or os.environ.get("OPENAI_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        api_base = llm_conf.get("api_base") or os.environ.get("LITELLM_API_BASE") or llm_conf.get("api_base")
+
+        try:
+            response = await litellm.acompletion(
+                model=model,
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_prompt}
+                ],
+                api_key=api_key,
+                api_base=api_base,
+            )
+            text_content = response.choices[0].message.content
+            cleaned_content = text_content.strip()
+            if cleaned_content.startswith("```"):
+                lines = cleaned_content.splitlines()
+                if lines[0].startswith("```json") or lines[0].startswith("```"):
+                    lines = lines[1:]
+                if lines and lines[-1].startswith("```"):
+                    lines = lines[:-1]
+                cleaned_content = "\n".join(lines).strip()
+            return json.loads(cleaned_content)
+        except Exception as e:
+            raise RuntimeError(f"LiteLLM API returned error: {e}")
+
     else:
         raise ValueError(f"Unknown LLM provider '{provider}' configured.")
 

@@ -1,8 +1,12 @@
 package middleware
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
@@ -57,7 +61,31 @@ func (c *JWKSCache) GetKey(kid string) (interface{}, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	for _, key := range jwks.Keys {
-		c.keys[key.Kid] = key
+		if key.Kty == "RSA" {
+			nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
+			if err != nil {
+				continue
+			}
+			eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
+			if err != nil {
+				continue
+			}
+			var eVal int
+			if len(eBytes) < 4 {
+				padded := make([]byte, 4)
+				copy(padded[4-len(eBytes):], eBytes)
+				eVal = int(binary.BigEndian.Uint32(padded))
+			} else {
+				eVal = int(binary.BigEndian.Uint32(eBytes))
+			}
+			pubKey := &rsa.PublicKey{
+				N: new(big.Int).SetBytes(nBytes),
+				E: eVal,
+			}
+			c.keys[key.Kid] = pubKey
+		} else {
+			c.keys[key.Kid] = key
+		}
 	}
 
 	if key, ok := c.keys[kid]; ok {
@@ -78,6 +106,11 @@ func getJWKS() *JWKSCache {
 		jwksCache = NewJWKSCache(jwksURL)
 	})
 	return jwksCache
+}
+
+func ResetJWKSCache() {
+	jwksCache = nil
+	once = sync.Once{}
 }
 
 func AuthMiddleware(c *fiber.Ctx) error {

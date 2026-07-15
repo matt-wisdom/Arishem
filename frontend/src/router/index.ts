@@ -7,16 +7,7 @@ const routes: RouteRecordRaw[] = [
     name: 'dashboard',
     component: () => import('@/pages/Dashboard.vue')
   },
-  {
-    path: '/scans',
-    name: 'scans',
-    component: () => import('@/pages/Scans.vue')
-  },
-  {
-    path: '/scans/:id',
-    name: 'scan-detail',
-    component: () => import('@/pages/ScanDetail.vue')
-  },
+
   {
     path: '/llmpentest',
     name: 'llmpentest',
@@ -51,6 +42,16 @@ const routes: RouteRecordRaw[] = [
     path: '/settings',
     name: 'settings',
     component: () => import('@/pages/Settings.vue')
+  },
+  {
+    path: '/sign-in',
+    name: 'sign-in',
+    component: () => import('@/views/sign-in.vue')
+  },
+  {
+    path: '/sign-up',
+    name: 'sign-up',
+    component: () => import('@/views/sign-up.vue')
   }
 ]
 
