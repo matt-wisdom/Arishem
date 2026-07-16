@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import Sidebar from './components/Sidebar.vue'
 import AppHeader from './components/Header.vue'
-import { SignedIn, SignedOut, SignIn } from '@clerk/vue'
+import { SignedIn, SignedOut } from '@clerk/vue'
+import { useRoute, useRouter } from 'vue-router'
+
+const route = useRoute()
+const router = useRouter()
 </script>
 
 <template>
@@ -16,13 +20,21 @@ import { SignedIn, SignedOut, SignIn } from '@clerk/vue'
       </div>
     </SignedIn>
     <SignedOut>
-      <div class="auth-container">
-        <div class="scanlines"></div>
-        <div class="grid-background"></div>
-        <div class="auth-card">
-          <SignIn />
-        </div>
+      <!-- If visiting /docs, show it directly with public shell -->
+      <div v-if="route.path === '/docs'" class="main-content public-layout">
+        <header class="public-header">
+          <div class="logo" @click="router.push('/sign-in')">
+            <img src="@/logo.jpeg" alt="Arishem Logo" class="logo-img" />
+            <span class="logo-text">Arishem</span>
+          </div>
+          <button class="btn-primary sign-in-nav-btn" @click="router.push('/sign-in')">Sign In</button>
+        </header>
+        <main class="content">
+          <RouterView />
+        </main>
       </div>
+      <!-- Otherwise render RouterView (which renders custom sign-in/sign-up page) -->
+      <RouterView v-else />
     </SignedOut>
   </div>
 </template>
@@ -84,6 +96,7 @@ body {
   flex: 1;
   padding: 24px 32px;
   overflow-y: auto;
+  overflow-x: hidden;
   background: radial-gradient(circle at 50% 50%, #0d0d21 0%, #03030c 100%);
   background-image: 
     linear-gradient(rgba(0, 255, 204, 0.02) 1px, transparent 1px), 
@@ -233,5 +246,63 @@ button:active {
   z-index: 10;
   border: 1px solid var(--border-color);
   box-shadow: 0 0 25px rgba(0, 255, 204, 0.15);
+}
+
+/* Public Layout & Header styles */
+.public-layout {
+  margin-left: 0 !important;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.public-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 32px;
+  background: var(--bg-primary);
+  border-bottom: 2px solid var(--border-color);
+}
+
+.public-header .logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
+
+.public-header .logo-img {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+}
+
+.public-header .logo-text {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-pink) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: 1px;
+}
+
+.sign-in-nav-btn {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 11px;
+  padding: 8px 16px;
+  border: 1px solid var(--accent);
+  background: transparent;
+  color: var(--accent);
+  transition: all 0.2s ease;
+}
+
+.sign-in-nav-btn:hover {
+  background: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 0 10px var(--accent-glow);
 }
 </style>

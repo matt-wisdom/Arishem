@@ -109,14 +109,11 @@ const copyToClipboard = async (text: string, id: string) => {
 
 <template>
   <div class="docs-page">
-    <Header>
-      <template #title>
-        <div class="docs-title-container">
-          <img src="@/logo.jpeg" alt="Arishem Logo" class="docs-logo" />
-          <span>Docs & Help Center</span>
-        </div>
-      </template>
-    </Header>
+    <div class="docs-hero">
+      <img src="@/logo.jpeg" alt="Arishem Logo" class="docs-hero-logo" />
+      <h1>Arishem Documentation</h1>
+      <p>Autonomous AI Security Penetration Testing Engine</p>
+    </div>
 
     <div class="page-content">
       <div class="grid-container">
@@ -209,8 +206,55 @@ const copyToClipboard = async (text: string, id: string) => {
 </template>
 
 <style scoped>
-.docs-page { min-height: 100%; }
-.page-content { padding-top: 24px; padding-bottom: 48px; }
+.docs-page { 
+  min-height: 100vh; 
+  background: var(--bg-primary);
+}
+
+.docs-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px 40px;
+  text-align: center;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.docs-hero-logo {
+  width: 140px;
+  height: 140px;
+  border: 2px solid var(--accent);
+  box-shadow: 0 0 20px var(--accent-glow);
+  margin-bottom: 24px;
+  object-fit: contain;
+  background: var(--bg-primary);
+}
+
+.docs-hero h1 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 12px;
+  text-shadow: 0 0 10px var(--accent-glow);
+}
+
+.docs-hero p {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 18px;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.page-content { 
+  padding: 32px 24px 48px; 
+  max-width: 1400px;
+  margin: 0 auto;
+}
 
 .grid-container {
   display: grid;
@@ -324,6 +368,12 @@ const copyToClipboard = async (text: string, id: string) => {
   color: #c9d1d9;
   line-height: 1.6;
   margin: 0;
+  max-width: 100%;
+}
+
+.code-block code {
+  display: block;
+  white-space: pre;
 }
 
 .deploy-grid {

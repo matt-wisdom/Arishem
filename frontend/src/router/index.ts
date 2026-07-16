@@ -4,8 +4,13 @@ import type { RouteRecordRaw } from 'vue-router'
 const routes: RouteRecordRaw[] = [
   {
     path: '/',
-    name: 'dashboard',
+    name: 'home',
     component: () => import('@/pages/Dashboard.vue')
+  },
+  {
+    path: '/sign-in',
+    name: 'sign-in',
+    component: () => import('@/views/sign-in.vue')
   },
 
   {
@@ -47,11 +52,6 @@ const routes: RouteRecordRaw[] = [
     path: '/docs',
     name: 'docs',
     component: () => import('@/pages/Docs.vue')
-  },
-  {
-    path: '/sign-in',
-    name: 'sign-in',
-    component: () => import('@/views/sign-in.vue')
   },
   {
     path: '/sign-up',

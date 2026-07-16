@@ -1,80 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useAuth } from '@clerk/vue'
+import { ref } from 'vue'
 
-const { getToken } = useAuth()
 const integrations = ref([
-  { id: 'github', name: 'GitHub', description: 'Connect repositories for code scanning', connected: false, icon: 'github' },
-  { id: 'slack', name: 'Slack', description: 'Receive alerts in Slack channels', connected: false, icon: 'slack' },
-  { id: 'jira', name: 'Jira', description: 'Create tickets from findings', connected: false, icon: 'jira' },
+  { id: 'github', name: 'GitHub', description: 'Connect repositories for code scanning', icon: 'github' },
+  { id: 'slack', name: 'Slack', description: 'Receive alerts in Slack channels', icon: 'slack' },
+  { id: 'jira', name: 'Jira', description: 'Create tickets from findings', icon: 'jira' },
 ])
-
-const getHeaders = async () => {
-  const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
-  const token = (await (tokenFn as any)()) || localStorage.getItem('token') || ''
-  return { 'Authorization': `Bearer ${token}` }
-}
-
-const checkGithubStatus = async () => {
-  try {
-    const headers = await getHeaders()
-    const res = await fetch('/api/integrations/github', { headers })
-    const github = integrations.value.find(i => i.id === 'github')
-    if (github) {
-      github.connected = res.ok
-    }
-  } catch (e) {
-    console.error(e)
-  }
-}
-
-onMounted(() => {
-  checkGithubStatus()
-})
-
-const handleConnect = async (id: string) => {
-  if (id !== 'github') {
-    alert('This integration is not supported in the backend yet.')
-    return
-  }
-  const token = prompt('Enter your GitHub Personal Access Token:')
-  if (!token) return
-
-  try {
-    const authHeaders = await getHeaders()
-    const res = await fetch('/api/integrations/github', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...authHeaders
-      },
-      body: JSON.stringify({ token })
-    })
-    if (!res.ok) throw new Error('Failed to connect to GitHub')
-    alert('GitHub connected successfully!')
-    checkGithubStatus()
-  } catch (e) {
-    alert(e instanceof Error ? e.message : 'Unknown error')
-  }
-}
-
-const handleDisconnect = async (id: string) => {
-  if (id !== 'github') return
-  if (!confirm('Are you sure you want to disconnect GitHub?')) return
-
-  try {
-    const authHeaders = await getHeaders()
-    const res = await fetch('/api/integrations/github', {
-      method: 'DELETE',
-      headers: authHeaders
-    })
-    if (!res.ok) throw new Error('Failed to disconnect GitHub')
-    alert('GitHub disconnected successfully!')
-    checkGithubStatus()
-  } catch (e) {
-    alert(e instanceof Error ? e.message : 'Unknown error')
-  }
-}
 </script>
 
 <template>
@@ -99,11 +30,8 @@ const handleDisconnect = async (id: string) => {
             <p>{{ int.description }}</p>
           </div>
           <div class="int-status">
-            <span v-if="int.connected" class="connected-badge">Connected</span>
-            <span v-else class="disconnected-badge">Not Connected</span>
+            <span class="not-implemented-badge">Not yet implemented</span>
           </div>
-          <button v-if="int.connected" @click="handleDisconnect(int.id)" class="disconnect-btn">Disconnect</button>
-          <button v-else @click="handleConnect(int.id)" class="connect-btn">Connect</button>
         </div>
       </div>
     </div>
@@ -123,9 +51,5 @@ const handleDisconnect = async (id: string) => {
 .int-info { flex: 1; }
 .int-info h3 { font-size: 16px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
 .int-info p { font-size: 13px; color: var(--text-muted); }
-.connected-badge { padding: 6px 14px; background: rgba(16, 185, 129, 0.15); color: #10b981; border-radius: 8px; font-size: 13px; font-weight: 500; }
-.disconnected-badge { padding: 6px 14px; background: var(--bg-secondary); color: var(--text-muted); border-radius: 8px; font-size: 13px; font-weight: 500; }
-.disconnect-btn { padding: 10px 20px; background: transparent; border: 1px solid var(--danger); color: var(--danger); border-radius: 10px; font-size: 14px; font-weight: 500; }
-.disconnect-btn:hover { background: rgba(239, 68, 68, 0.1); }
-.connect-btn { padding: 10px 20px; background: linear-gradient(135deg, var(--accent), #2563eb); color: white; border: none; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.not-implemented-badge { padding: 6px 14px; background: rgba(255, 159, 0, 0.15); color: var(--warning); border-radius: 8px; font-size: 13px; font-weight: 500; }
 </style>
