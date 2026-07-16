@@ -40,3 +40,6 @@ results.json
 
 # MinIO data
 minio_data/
+
+# SQLite databases
+*.db
