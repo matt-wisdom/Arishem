@@ -444,3 +444,66 @@ func TestDeleteLLMPentest_Integration(t *testing.T) {
 		t.Error("expected run to be deleted from database, but it still exists")
 	}
 }
+
+func TestDailyRateLimiter(t *testing.T) {
+	os.Setenv("MAX_RUNS_PER_DAY", "2")
+	defer os.Unsetenv("MAX_RUNS_PER_DAY")
+
+	limit := GetMaxRunsPerDay()
+	if limit != 2 {
+		t.Errorf("expected GetMaxRunsPerDay to return 2, got %d", limit)
+	}
+
+	// Test case where no database pool is configured or closed
+	exceeded, err := CheckDailyLimitExceeded(context.Background(), uuid.New().String())
+	if err != nil {
+		t.Errorf("unexpected error: %v", err)
+	}
+	if exceeded {
+		t.Error("expected CheckDailyLimitExceeded to return false when db pool is nil or closed")
+	}
+
+	// Verify logic with populated database if connection is available
+	if initTestDB(t) {
+		ctx := context.Background()
+		orgID := uuid.New().String()
+		orgUUID, _ := uuid.Parse(orgID)
+
+		// Insert test organization
+		_, err = db.GetPool().Exec(ctx, `
+			INSERT INTO organizations (id, clerk_org_id, name)
+			VALUES ($1, $2, $3)
+		`, orgUUID, "org_"+orgID, "Rate Limit Org")
+		if err != nil {
+			t.Fatalf("failed to insert org: %v", err)
+		}
+		defer db.GetPool().Exec(ctx, `DELETE FROM organizations WHERE id = $1`, orgUUID)
+
+		// Check limit (should be false since count is 0)
+		exceeded, err = CheckDailyLimitExceeded(ctx, orgID)
+		if err != nil || exceeded {
+			t.Errorf("expected false, got exceeded=%v, err=%v", exceeded, err)
+		}
+
+		// Insert 2 scans to hit the limit
+		for i := 0; i < 2; i++ {
+			_, err = db.GetPool().Exec(ctx, `
+				INSERT INTO scans (id, org_id, type, status, target, branch, created_at)
+				VALUES ($1, $2, $3, $4, $5, $6, $7)
+			`, uuid.New(), orgUUID, "code", "queued", "https://github.com/test", "main", time.Now())
+			if err != nil {
+				t.Fatalf("failed to insert test scan: %v", err)
+			}
+		}
+		defer db.GetPool().Exec(ctx, `DELETE FROM scans WHERE org_id = $1`, orgUUID)
+
+		// Limit should now be exceeded
+		exceeded, err = CheckDailyLimitExceeded(ctx, orgID)
+		if err != nil {
+			t.Fatalf("unexpected error checking limit: %v", err)
+		}
+		if !exceeded {
+			t.Error("expected limit to be exceeded after inserting 2 scans")
+		}
+	}
+}

@@ -33,6 +33,14 @@ func CreateCodeScan(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "target is required"})
 	}
 
+	limitExceeded, err := CheckDailyLimitExceeded(c.Context(), orgID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to verify rate limit"})
+	}
+	if limitExceeded {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Daily run limit exceeded"})
+	}
+
 	orgUUID, _ := uuid.Parse(orgID)
 	scan := models.Scan{
 		ID:        uuid.New(),
@@ -48,7 +56,7 @@ func CreateCodeScan(c *fiber.Ctx) error {
 		scan.Branch = "main"
 	}
 
-	_, err := db.GetPool().Exec(c.Context(), `
+	_, err = db.GetPool().Exec(c.Context(), `
 		INSERT INTO scans (id, org_id, type, status, target, branch, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`, scan.ID, scan.OrgID, scan.Type, scan.Status, scan.Target, scan.Branch, scan.CreatedAt)
@@ -81,6 +89,14 @@ func CreateWebappScan(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "target is required"})
 	}
 
+	limitExceeded, err := CheckDailyLimitExceeded(c.Context(), orgID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to verify rate limit"})
+	}
+	if limitExceeded {
+		return c.Status(fiber.StatusTooManyRequests).JSON(fiber.Map{"error": "Daily run limit exceeded"})
+	}
+
 	orgUUID, _ := uuid.Parse(orgID)
 	scan := models.Scan{
 		ID:        uuid.New(),
@@ -91,7 +107,7 @@ func CreateWebappScan(c *fiber.Ctx) error {
 		CreatedAt: time.Now(),
 	}
 
-	_, err := db.GetPool().Exec(c.Context(), `
+	_, err = db.GetPool().Exec(c.Context(), `
 		INSERT INTO scans (id, org_id, type, status, target, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6)
 	`, scan.ID, scan.OrgID, scan.Type, scan.Status, scan.Target, scan.CreatedAt)
