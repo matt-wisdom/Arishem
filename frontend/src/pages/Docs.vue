@@ -124,11 +124,7 @@ const copyToClipboard = async (text: string, id: string) => {
             <p>
               Arishem is a state-of-the-art autonomous security scanner and AI red-teaming platform. It enables security engineers and developers to stress-test their LLM applications, agentic workflows, and web services against advanced cyber threats, jailbreaks, and prompt injections.
             </p>
-            <div class="intro-features" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
-              <div class="feature-badge" style="background: rgba(0, 255, 204, 0.05); border: 1px solid rgba(0, 255, 204, 0.15); padding: 14px; border-radius: 8px;">
-                <h4 style="color: var(--accent); font-size: 13px; margin-bottom: 6px;">🛡️ Static Scans</h4>
-                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">Analyzes target repository files and configurations for key leaks, package vulns, and static configuration errors.</p>
-              </div>
+            <div class="intro-features" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;">
               <div class="feature-badge" style="background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.15); padding: 14px; border-radius: 8px;">
                 <h4 style="color: var(--accent-pink); font-size: 13px; margin-bottom: 6px;">🧠 LLM Pentesting</h4>
                 <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">Red-teaming agents dynamically probe target chat services to exploit prompt injection, data leakage, and tool misuse.</p>
