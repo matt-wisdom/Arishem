@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
+	"strings"
 	"time"
 
 	"arishem/internal/alerts"
@@ -93,12 +95,36 @@ func runCodeScan(ctx context.Context, task *ScanTask) error {
 		scannerPath = "../scanner/code_scanner/runner.py"
 	}
 
-	cmd := exec.CommandContext(ctx, "python3", scannerPath,
-		"--target", task.Target,
-		"--output-dir", "/tmp/arishem/reports",
-		"--formats", "html,md,sarif",
-	)
-	cmd.Dir = "/mnt/C6EE65A1EE658B0F/WORKEST/Arishem"
+	targetArg := task.Target
+	var cmd *exec.Cmd
+	if os.Getenv("EXPECTS_UNSAFE_CODE") == "true" {
+		if filepath.IsAbs(task.Target) {
+			targetArg = strings.Replace(task.Target, "/mnt/C6EE65A1EE658B0F/WORKEST/Arishem", "/app", 1)
+		} else {
+			targetArg = filepath.Join("/app", task.Target)
+		}
+
+		dockerArgs := []string{
+			"run", "--rm",
+			"-e", "PYTHONUNBUFFERED=1",
+			"-v", "/tmp/arishem:/tmp/arishem",
+			"-v", "/mnt/C6EE65A1EE658B0F/WORKEST/Arishem:/app",
+			"-w", "/app",
+			"python:3.11-slim",
+			"python3", "scanner/code_scanner/runner.py",
+			"--target", targetArg,
+			"--output-dir", "/tmp/arishem/reports",
+			"--formats", "html,md,sarif",
+		}
+		cmd = exec.CommandContext(ctx, "docker", dockerArgs...)
+	} else {
+		cmd = exec.CommandContext(ctx, "python3", scannerPath,
+			"--target", targetArg,
+			"--output-dir", "/tmp/arishem/reports",
+			"--formats", "html,md,sarif",
+		)
+		cmd.Dir = "/mnt/C6EE65A1EE658B0F/WORKEST/Arishem"
+	}
 
 	output, err := cmd.CombinedOutput()
 	log.Printf("Code scan output: %s", string(output))
