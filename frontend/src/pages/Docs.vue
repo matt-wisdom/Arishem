@@ -110,7 +110,12 @@ const copyToClipboard = async (text: string, id: string) => {
 <template>
   <div class="docs-page">
     <Header>
-      <template #title>Docs & Help Center</template>
+      <template #title>
+        <div class="docs-title-container">
+          <img src="@/logo.jpeg" alt="Arishem Logo" class="docs-logo" />
+          <span>Docs & Help Center</span>
+        </div>
+      </template>
     </Header>
 
     <div class="page-content">
@@ -435,5 +440,20 @@ const copyToClipboard = async (text: string, id: string) => {
   font-family: 'Orbitron', sans-serif;
   font-size: 11px;
   letter-spacing: 0.5px;
+}
+
+.docs-title-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.docs-logo {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 6px var(--accent-glow);
 }
 </style>

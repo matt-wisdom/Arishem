@@ -23,19 +23,7 @@ const isActive = (path: string) => {
 <template>
   <aside class="sidebar">
     <div class="logo" @click="router.push('/')">
-      <div class="logo-icon">
-        <svg viewBox="0 0 32 32" fill="none">
-          <path d="M16 2L4 8v8c0 7.732 5.12 14.936 12 17 6.88-2.064 12-9.268 12-17V8L16 2z" fill="url(#logoGrad)" />
-          <path d="M16 8l-6 3v5c0 4.5 2.64 8.68 6 10 3.36-1.32 6-5.5 6-10v-5l-6-3z" fill="#0a0f1c" />
-          <circle cx="16" cy="15" r="3" fill="#3b82f6" />
-          <defs>
-            <linearGradient id="logoGrad" x1="4" y1="2" x2="28" y2="27" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#3b82f6" />
-              <stop offset="1" stop-color="#1d4ed8" />
-            </linearGradient>
-          </defs>
-        </svg>
-      </div>
+      <img src="@/logo.jpeg" alt="Arishem Logo" class="logo-img" />
       <span class="logo-text">Arishem</span>
     </div>
 
@@ -116,15 +104,13 @@ const isActive = (path: string) => {
   border-bottom: 2px solid var(--border-color);
 }
 
-.logo-icon {
+.logo-img {
   width: 40px;
   height: 40px;
-  filter: drop-shadow(0 0 5px var(--accent-glow));
-}
-
-.logo-icon svg {
-  width: 100%;
-  height: 100%;
+  border-radius: 8px;
+  object-fit: cover;
+  border: 1px solid var(--accent);
+  box-shadow: 0 0 8px var(--accent-glow);
 }
 
 .logo-text {
