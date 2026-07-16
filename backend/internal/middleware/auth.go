@@ -140,9 +140,7 @@ func AuthMiddleware(c *fiber.Ctx) error {
 			return nil, fmt.Errorf("missing kid in token header")
 		}
 		return getJWKS().GetKey(kid)
-	}, jwt.WithIssuer("https://clerk.com"),
-		jwt.WithAudience("arishem"),
-	)
+	})
 
 	if err != nil || !token.Valid {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token"})

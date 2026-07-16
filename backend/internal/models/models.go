@@ -52,6 +52,16 @@ type LLMPentestRun struct {
 	TargetEndpoint string     `json:"target_endpoint"`
 	Status         ScanStatus `json:"status"`
 	TestModules    []string   `json:"test_modules"`
+	Logs           string     `json:"logs"`
+	Docker         bool       `json:"docker"`
+	ConfigMode     string     `json:"config_mode"`
+	APIKey         string     `json:"api_key"`
+	Model          string     `json:"model"`
+	LLMProvider    string     `json:"llm_provider"`
+	APIBase        string     `json:"api_base"`
+	Mode           string     `json:"mode"`
+	Budget         int        `json:"budget"`
+	Concurrency    int        `json:"concurrency"`
 	CreatedAt      time.Time  `json:"created_at"`
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }

@@ -35,6 +35,16 @@ CREATE TABLE IF NOT EXISTS llm_pentest_runs (
     target_endpoint TEXT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'queued',
     test_modules TEXT[],
+    logs TEXT DEFAULT '',
+    docker BOOLEAN DEFAULT FALSE,
+    config_mode VARCHAR(50) DEFAULT 'default',
+    api_key TEXT DEFAULT '',
+    model VARCHAR(100) DEFAULT '',
+    llm_provider VARCHAR(50) DEFAULT '',
+    api_base TEXT DEFAULT '',
+    mode VARCHAR(50) DEFAULT '',
+    budget INT DEFAULT 0,
+    concurrency INT DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE
 );

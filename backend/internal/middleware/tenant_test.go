@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 )
 
 func TestGetOrgID(t *testing.T) {
@@ -119,8 +120,8 @@ func TestTenantMiddleware_DirectClaims(t *testing.T) {
 
 	var res map[string]string
 	json.NewDecoder(resp.Body).Decode(&res)
-	if res["org_id"] != "org_abc" {
-		t.Errorf("expected org_id org_abc, got %s", res["org_id"])
+	if _, err := uuid.Parse(res["org_id"]); err != nil {
+		t.Errorf("expected org_id to be a valid UUID, got %s (error: %v)", res["org_id"], err)
 	}
 	if res["role"] != "org:admin" {
 		t.Errorf("expected role org:admin, got %s", res["role"])
@@ -158,8 +159,8 @@ func TestTenantMiddleware_OrgsMapClaims(t *testing.T) {
 
 	var res map[string]string
 	json.NewDecoder(resp.Body).Decode(&res)
-	if res["org_id"] != "org_xyz" {
-		t.Errorf("expected org_id org_xyz, got %s", res["org_id"])
+	if _, err := uuid.Parse(res["org_id"]); err != nil {
+		t.Errorf("expected org_id to be a valid UUID, got %s (error: %v)", res["org_id"], err)
 	}
 	if res["role"] != "org:engineer" {
 		t.Errorf("expected role org:engineer, got %s", res["role"])

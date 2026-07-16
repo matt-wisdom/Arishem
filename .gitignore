@@ -34,7 +34,7 @@ coverage/
 .coverage
 
 # Reports
-reports/
+/reports/
 *.sarif
 results.json
 

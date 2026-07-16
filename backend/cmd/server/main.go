@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"strings"
@@ -24,12 +25,42 @@ import (
 func main() {
 	loadEnv()
 
+	// Initialize structured JSON logging
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
+		Level: slog.LevelInfo,
+	})))
+	slog.Info("Starting Arishem API server...")
+
 	if err := db.Init(); err != nil {
-		log.Printf("Warning: failed to initialize database: %v", err)
+		slog.Error("Failed to initialize database", slog.Any("error", err))
+	} else {
+		// Auto-migrate schema: add logs and rerun parameters to llm_pentest_runs if not exists
+		if pool := db.GetPool(); pool != nil {
+			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			defer cancel()
+			_, err := pool.Exec(ctx, `
+				ALTER TABLE llm_pentest_runs 
+				ADD COLUMN IF NOT EXISTS logs TEXT DEFAULT '',
+				ADD COLUMN IF NOT EXISTS docker BOOLEAN DEFAULT FALSE,
+				ADD COLUMN IF NOT EXISTS config_mode VARCHAR(50) DEFAULT 'default',
+				ADD COLUMN IF NOT EXISTS api_key TEXT DEFAULT '',
+				ADD COLUMN IF NOT EXISTS model VARCHAR(100) DEFAULT '',
+				ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT '',
+				ADD COLUMN IF NOT EXISTS api_base TEXT DEFAULT '',
+				ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT '',
+				ADD COLUMN IF NOT EXISTS budget INT DEFAULT 0,
+				ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0;
+			`)
+			if err != nil {
+				slog.Error("Failed to auto-upgrade DB schema for llm_pentest_runs", slog.Any("error", err))
+			} else {
+				slog.Info("Database schema verified and upgraded successfully")
+			}
+		}
 	}
 
 	if err := reports.InitS3(); err != nil {
-		log.Printf("Warning: failed to initialize S3: %v", err)
+		slog.Error("Failed to initialize S3", slog.Any("error", err))
 	}
 
 	app := fiber.New(fiber.Config{
@@ -101,7 +132,14 @@ func loadEnv() {
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				val := strings.TrimSpace(parts[1])
+				
+				// Strip inline comments starting with '#'
+				if idx := strings.Index(val, "#"); idx != -1 {
+					val = strings.TrimSpace(val[:idx])
+				}
+				
 				val = strings.Trim(val, `"'`)
+				val = strings.TrimSpace(val)
 				if os.Getenv(key) == "" {
 					os.Setenv(key, val)
 				}

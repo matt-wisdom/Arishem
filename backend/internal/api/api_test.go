@@ -9,6 +9,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"arishem/internal/db"
 	"arishem/internal/models"
@@ -179,6 +180,23 @@ func initTestDB(t *testing.T) bool {
 		if err != nil {
 			t.Logf("Failed to run migrations: %v", err)
 		}
+		// Apply Alter Table to upgrade test database schema
+		_, err = db.GetPool().Exec(context.Background(), `
+			ALTER TABLE llm_pentest_runs 
+			ADD COLUMN IF NOT EXISTS logs TEXT DEFAULT '',
+			ADD COLUMN IF NOT EXISTS docker BOOLEAN DEFAULT FALSE,
+			ADD COLUMN IF NOT EXISTS config_mode VARCHAR(50) DEFAULT 'default',
+			ADD COLUMN IF NOT EXISTS api_key TEXT DEFAULT '',
+			ADD COLUMN IF NOT EXISTS model VARCHAR(100) DEFAULT '',
+			ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT '',
+			ADD COLUMN IF NOT EXISTS api_base TEXT DEFAULT '',
+			ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT '',
+			ADD COLUMN IF NOT EXISTS budget INT DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0;
+		`)
+		if err != nil {
+			t.Logf("Failed to alter table in test: %v", err)
+		}
 	} else {
 		t.Logf("Failed to read schema file: %v", err)
 	}
@@ -298,5 +316,66 @@ func TestCreateCodeScan_Forbidden(t *testing.T) {
 	}
 	if resp.StatusCode != http.StatusForbidden {
 		t.Errorf("expected 403 Forbidden, got %d", resp.StatusCode)
+	}
+}
+
+func TestRerunLLMPentest_Integration(t *testing.T) {
+	if !initTestDB(t) {
+		t.Skip("Database not available")
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	orgUUID := uuid.New()
+	orgID := orgUUID.String()
+
+	// Insert test organization
+	_, err := db.GetPool().Exec(ctx, `
+		INSERT INTO organizations (id, clerk_org_id, name)
+		VALUES ($1, $2, $3)
+	`, orgUUID, "clerk_"+orgUUID.String(), "Test API Org")
+	if err != nil {
+		t.Fatalf("failed to insert test organization: %v", err)
+	}
+	defer db.GetPool().Exec(ctx, `DELETE FROM organizations WHERE id = $1`, orgUUID)
+
+	origRunID := uuid.New()
+	_, err = db.GetPool().Exec(ctx, `
+		INSERT INTO llm_pentest_runs (
+			id, org_id, target_endpoint, status, test_modules, 
+			docker, config_mode, api_key, model, llm_provider, 
+			api_base, mode, budget, concurrency, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+	`, origRunID, orgUUID, "https://api.example.com/chat", "completed", []string{"prompt_injection"},
+		false, "custom", "sk-test", "gpt-4", "openai", "https://api.openai.com/v1", "both", 8, 4, time.Now())
+	if err != nil {
+		t.Fatalf("failed to insert test LLM run: %v", err)
+	}
+	defer db.GetPool().Exec(ctx, `DELETE FROM llm_pentest_runs WHERE org_id = $1`, orgUUID)
+
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("org_id", orgID)
+		c.Locals("role", "org:admin")
+		return c.Next()
+	})
+	app.Post("/llmpentest/:id/rerun", RerunLLMPentest)
+
+	req := httptest.NewRequest("POST", "/llmpentest/"+origRunID.String()+"/rerun", nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("POST /llmpentest/:id/rerun request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("expected 201 Created, got %d", resp.StatusCode)
+	}
+
+	var runObj models.LLMPentestRun
+	json.NewDecoder(resp.Body).Decode(&runObj)
+	if runObj.TargetEndpoint != "https://api.example.com/chat" {
+		t.Errorf("expected target_endpoint %s, got %s", "https://api.example.com/chat", runObj.TargetEndpoint)
+	}
+	if runObj.ConfigMode != "custom" {
+		t.Errorf("expected configMode custom, got %s", runObj.ConfigMode)
 	}
 }
