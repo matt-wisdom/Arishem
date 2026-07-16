@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 	"time"
@@ -104,8 +105,14 @@ func runCodeScan(ctx context.Context, task *ScanTask) error {
 			targetArg = filepath.Join("/app", task.Target)
 		}
 
+		userArg := "1000:1000"
+		if u, err := user.Current(); err == nil {
+			userArg = fmt.Sprintf("%s:%s", u.Uid, u.Gid)
+		}
+
 		dockerArgs := []string{
 			"run", "--rm",
+			"--user", userArg,
 			"-e", "PYTHONUNBUFFERED=1",
 			"-v", "/tmp/arishem:/tmp/arishem",
 			"-v", "/mnt/C6EE65A1EE658B0F/WORKEST/Arishem:/app",
