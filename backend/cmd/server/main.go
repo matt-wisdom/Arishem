@@ -18,6 +18,7 @@ import (
 
 	"arishem/internal/api"
 	"arishem/internal/db"
+	"arishem/internal/jobs"
 	"arishem/internal/middleware"
 	"arishem/internal/reports"
 )
@@ -63,6 +64,9 @@ func main() {
 	if err := reports.InitS3(); err != nil {
 		slog.Error("Failed to initialize S3", slog.Any("error", err))
 	}
+
+	// Start background worker pool for jobs
+	jobs.StartWorkerPool(context.Background())
 
 	app := fiber.New(fiber.Config{
 		AppName:        "Arishem",

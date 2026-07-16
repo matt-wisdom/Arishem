@@ -186,6 +186,9 @@ func CancelScan(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "invalid scan id"})
 	}
 
+	// Try canceling the active task in the worker pool
+	jobs.CancelActiveTask(scanID)
+
 	result, err := db.GetPool().Exec(c.Context(), `
 		UPDATE scans SET status = $1 WHERE id = $2 AND org_id = $3 AND status IN ($4, $5)
 	`, models.ScanStatusCancelled, scanUUID, orgUUID, models.ScanStatusQueued, models.ScanStatusRunning)

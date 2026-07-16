@@ -18,6 +18,7 @@ func RegisterRoutes(app fiber.Router) {
 	llmpentest.Get("/:id", GetLLMPentest)
 	llmpentest.Post("/:id/rerun", RerunLLMPentest)
 	llmpentest.Delete("/:id", DeleteLLMPentest)
+	llmpentest.Post("/:id/cancel", CancelLLMPentest)
 
 	reports := app.Group("/reports")
 	reports.Get("/", ListReports)

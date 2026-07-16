@@ -137,3 +137,44 @@ func TestTimeNow(t *testing.T) {
 		t.Error("time.Now() should not be zero")
 	}
 }
+
+func TestRegisterAndCancelActiveTask(t *testing.T) {
+	runID := uuid.New().String()
+	orgID := uuid.New().String()
+	canceled := false
+	cancel := func() {
+		canceled = true
+	}
+
+	// Register task
+	registered := RegisterActiveTask(runID, orgID, cancel)
+	if !registered {
+		t.Error("expected task to be registered successfully")
+	}
+
+	// Double register should fail because limit per org is max 2 (let's check with 3 tasks)
+	runID2 := uuid.New().String()
+	registered2 := RegisterActiveTask(runID2, orgID, func() {})
+	if !registered2 {
+		t.Error("expected second task to be registered successfully (max is 2)")
+	}
+
+	runID3 := uuid.New().String()
+	registered3 := RegisterActiveTask(runID3, orgID, func() {})
+	if registered3 {
+		t.Error("expected third task to be rate-limited (max is 2)")
+	}
+
+	// Cancel task
+	canceledOk := CancelActiveTask(runID)
+	if !canceledOk {
+		t.Error("expected task to be canceled successfully")
+	}
+	if !canceled {
+		t.Error("expected cancel function to be executed")
+	}
+
+	// Deregister task
+	DeregisterActiveTask(runID2, orgID)
+	DeregisterActiveTask(runID3, orgID)
+}

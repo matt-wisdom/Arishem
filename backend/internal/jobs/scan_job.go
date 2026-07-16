@@ -36,7 +36,11 @@ func NewScanTask(orgID, scanID, scanType, target, branch string) *ScanTask {
 }
 
 func EnqueueScanTask(ctx context.Context, task *ScanTask) error {
-	go processScanTask(ctx, task)
+	select {
+	case scanQueue <- task:
+	default:
+		go func() { scanQueue <- task }()
+	}
 	return nil
 }
 
@@ -62,6 +66,11 @@ func processScanTask(ctx context.Context, task *ScanTask) {
 
 	now := time.Now()
 	if scanErr != nil {
+		if ctx.Err() == context.Canceled {
+			log.Printf("Scan cancelled by user: %s", task.ScanID)
+			pool.Exec(ctx, `UPDATE scans SET status = $1, completed_at = $2 WHERE id = $3`, models.ScanStatusCancelled, now, scanUUID)
+			return
+		}
 		pool.Exec(ctx, `UPDATE scans SET status = $1, completed_at = $2 WHERE id = $3`, models.ScanStatusFailed, now, scanUUID)
 		log.Printf("Scan failed: %s error=%v", task.ScanID, scanErr)
 	} else {
