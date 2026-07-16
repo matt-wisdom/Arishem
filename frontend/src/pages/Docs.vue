@@ -197,6 +197,32 @@ const copyToClipboard = async (text: string, id: string) => {
               </div>
             </div>
           </section>
+
+          <section id="security" class="docs-section">
+            <h2>🛡️ Security & Sandbox Isolation</h2>
+            <p>
+              Arishem runs adversarial test scripts that can execute untrusted user code. To prevent system-level modifications on the host, the backend server provides robust containerized sandboxing:
+            </p>
+            <div class="deploy-grid" style="margin-top: 15px;">
+              <div class="deploy-card">
+                <h3>🐳 Docker Sandboxing</h3>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  When running in Docker mode, the backend spawns a sandboxed <code>python:3.11-slim</code> container. This isolates target script execution, pip packages installation, and CLI test evaluation from the host machine.
+                </p>
+              </div>
+              <div class="deploy-card">
+                <h3>🔒 Dynamic Security Configurations</h3>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  To secure scans, the following safety properties are enforced:
+                </p>
+                <ul style="margin-top: 8px; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  <li><strong>Non-Root User Execution</strong>: Containers execute using the dynamically resolved UID/GID of the host's backend process (<code>--user uid:gid</code>), restricting host system file write operations.</li>
+                  <li><strong>Forced Containment</strong>: Setting the environment variable <code>EXPECTS_UNSAFE_CODE=true</code> in your backend <code>.env</code> file forces all job executions (both static scans and LLM pentests) to run inside Docker containers, overriding client preferences.</li>
+                  <li><strong>Daily Scans Rate Limits</strong>: The environment variable <code>MAX_RUNS_PER_DAY</code> (defaults to 10) controls the rolling 24-hour rate limit on creations to mitigate resource starvation.</li>
+                </ul>
+              </div>
+            </div>
+          </section>
         </div>
 
         <!-- Sidebar panel with LLM Prompt Generation context -->

@@ -35,7 +35,9 @@ To prevent system resource exhaustion, the Go backend manages background tasks t
 ### 2. Isolated Container Sandboxing
 Adversarial test scripts can be executed inside containerized environments to prevent arbitrary code execution on the host:
 * When Docker mode is enabled, the backend spawns a sandboxed `python:3.11-slim` container.
-* Dynamic target mounts, network configurations (`--network host`), and path translations are managed automatically to ensure target packages are installed and executed successfully.
+* **Unprivileged Non-Root Execution**: Containers execute using the dynamically-detected UID and GID of the host's backend process (`--user uid:gid`). This restricts filesystem permissions and blocks privilege escalations.
+* **Write Isolation**: A writable Python user-base base-path (`/tmp/arishem/user-base`) is mounted dynamically so that dependencies (`requirements.txt`) are installed via `pip install --user` without needing root write privileges inside the container.
+* **Forced Containerization**: Setting the environment variable `EXPECTS_UNSAFE_CODE=true` forces all job executions (both static code scans and LLM pentests) to run inside Docker containers, overriding user selections.
 
 ---
 
