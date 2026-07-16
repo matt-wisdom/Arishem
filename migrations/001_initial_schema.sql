@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS llm_pentest_runs (
     mode VARCHAR(50) DEFAULT '',
     budget INT DEFAULT 0,
     concurrency INT DEFAULT 0,
+    version INT DEFAULT 1,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     completed_at TIMESTAMP WITH TIME ZONE
 );

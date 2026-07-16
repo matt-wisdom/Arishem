@@ -192,7 +192,8 @@ func initTestDB(t *testing.T) bool {
 			ADD COLUMN IF NOT EXISTS api_base TEXT DEFAULT '',
 			ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT '',
 			ADD COLUMN IF NOT EXISTS budget INT DEFAULT 0,
-			ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0;
+			ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0,
+			ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
 		`)
 		if err != nil {
 			t.Logf("Failed to alter table in test: %v", err)
@@ -344,10 +345,10 @@ func TestRerunLLMPentest_Integration(t *testing.T) {
 		INSERT INTO llm_pentest_runs (
 			id, org_id, target_endpoint, status, test_modules, 
 			docker, config_mode, api_key, model, llm_provider, 
-			api_base, mode, budget, concurrency, created_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+			api_base, mode, budget, concurrency, version, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
 	`, origRunID, orgUUID, "https://api.example.com/chat", "completed", []string{"prompt_injection"},
-		false, "custom", "sk-test", "gpt-4", "openai", "https://api.openai.com/v1", "both", 8, 4, time.Now())
+		false, "custom", "sk-test", "gpt-4", "openai", "https://api.openai.com/v1", "both", 8, 4, 1, time.Now())
 	if err != nil {
 		t.Fatalf("failed to insert test LLM run: %v", err)
 	}
@@ -377,5 +378,69 @@ func TestRerunLLMPentest_Integration(t *testing.T) {
 	}
 	if runObj.ConfigMode != "custom" {
 		t.Errorf("expected configMode custom, got %s", runObj.ConfigMode)
+	}
+}
+
+func TestDeleteLLMPentest_Integration(t *testing.T) {
+	if !initTestDB(t) {
+		t.Skip("Database not available")
+	}
+	defer db.Close()
+
+	ctx := context.Background()
+	orgUUID := uuid.New()
+	orgID := orgUUID.String()
+
+	// Insert test organization
+	_, err := db.GetPool().Exec(ctx, `
+		INSERT INTO organizations (id, clerk_org_id, name)
+		VALUES ($1, $2, $3)
+	`, orgUUID, "clerk_"+orgUUID.String(), "Test API Org")
+	if err != nil {
+		t.Fatalf("failed to insert test organization: %v", err)
+	}
+	defer db.GetPool().Exec(ctx, `DELETE FROM organizations WHERE id = $1`, orgUUID)
+
+	origRunID := uuid.New()
+	_, err = db.GetPool().Exec(ctx, `
+		INSERT INTO llm_pentest_runs (
+			id, org_id, target_endpoint, status, test_modules, 
+			docker, config_mode, api_key, model, llm_provider, 
+			api_base, mode, budget, concurrency, version, created_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+	`, origRunID, orgUUID, "https://api.example.com/chat", "completed", []string{"prompt_injection"},
+		false, "custom", "sk-test", "gpt-4", "openai", "https://api.openai.com/v1", "both", 8, 4, 1, time.Now())
+	if err != nil {
+		t.Fatalf("failed to insert test LLM run: %v", err)
+	}
+	defer db.GetPool().Exec(ctx, `DELETE FROM llm_pentest_runs WHERE org_id = $1`, orgUUID)
+
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("org_id", orgID)
+		c.Locals("role", "org:admin")
+		return c.Next()
+	})
+	app.Delete("/llmpentest/:id", DeleteLLMPentest)
+
+	req := httptest.NewRequest("DELETE", "/llmpentest/"+origRunID.String(), nil)
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatalf("DELETE /llmpentest/:id request failed: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected 200 OK, got %d", resp.StatusCode)
+	}
+
+	// Verify it was deleted
+	var exists bool
+	err = db.GetPool().QueryRow(ctx, `
+		SELECT EXISTS(SELECT 1 FROM llm_pentest_runs WHERE id = $1)
+	`, origRunID).Scan(&exists)
+	if err != nil {
+		t.Fatalf("failed to check existence: %v", err)
+	}
+	if exists {
+		t.Error("expected run to be deleted from database, but it still exists")
 	}
 }

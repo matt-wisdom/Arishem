@@ -62,6 +62,7 @@ type LLMPentestRun struct {
 	Mode           string     `json:"mode"`
 	Budget         int        `json:"budget"`
 	Concurrency    int        `json:"concurrency"`
+	Version        int        `json:"version"`
 	CreatedAt      time.Time  `json:"created_at"`
 	CompletedAt    *time.Time `json:"completed_at,omitempty"`
 }

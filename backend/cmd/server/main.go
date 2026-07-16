@@ -49,7 +49,8 @@ func main() {
 				ADD COLUMN IF NOT EXISTS api_base TEXT DEFAULT '',
 				ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT '',
 				ADD COLUMN IF NOT EXISTS budget INT DEFAULT 0,
-				ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0;
+				ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0,
+				ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
 			`)
 			if err != nil {
 				slog.Error("Failed to auto-upgrade DB schema for llm_pentest_runs", slog.Any("error", err))
