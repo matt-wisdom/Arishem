@@ -1,5 +1,5 @@
 import logging
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from rich.console import Console
 from rich.table import Table
 from rich.live import Live
@@ -9,6 +9,8 @@ from rich.text import Text
 from arishem.models import ProbeSession, Turn, Finding, ArishemRunResult
 
 console = Console()
+
+logger = logging.getLogger("arishem.reporters.console")
 
 class ConsoleReporter:
     def __init__(self):
@@ -36,6 +38,7 @@ class ConsoleReporter:
         if key in self.sessions_status:
             self.sessions_status[key]["turns"] = len(session.history)
             self.sessions_status[key]["status"] = session.status.upper()
+            logger.info(f"Target: {session.function_spec.name} | Class: {session.attack_class} | Turn: {len(session.history)}/{session.budget} | Status: {session.status.upper()}")
             if self.live:
                 self.live.update(self._generate_table())
 

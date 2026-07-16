@@ -34,6 +34,11 @@ def load_env():
             break
 
 def main():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s | %(levelname)s | %(name)s | %(message)s",
+        stream=sys.stdout
+    )
     load_env()
     parser = argparse.ArgumentParser(
         description="Arishem — Autonomous AI Security Testing Engine",
