@@ -120,6 +120,27 @@ const copyToClipboard = async (text: string, id: string) => {
         <!-- Main documentation panel -->
         <div class="docs-main">
           <section class="docs-section">
+            <h2>Welcome to Arishem</h2>
+            <p>
+              Arishem is a state-of-the-art autonomous security scanner and AI red-teaming platform. It enables security engineers and developers to stress-test their LLM applications, agentic workflows, and web services against advanced cyber threats, jailbreaks, and prompt injections.
+            </p>
+            <div class="intro-features" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 20px;">
+              <div class="feature-badge" style="background: rgba(0, 255, 204, 0.05); border: 1px solid rgba(0, 255, 204, 0.15); padding: 14px; border-radius: 8px;">
+                <h4 style="color: var(--accent); font-size: 13px; margin-bottom: 6px;">🛡️ Static Scans</h4>
+                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">Analyzes target repository files and configurations for key leaks, package vulns, and static configuration errors.</p>
+              </div>
+              <div class="feature-badge" style="background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.15); padding: 14px; border-radius: 8px;">
+                <h4 style="color: var(--accent-pink); font-size: 13px; margin-bottom: 6px;">🧠 LLM Pentesting</h4>
+                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">Red-teaming agents dynamically probe target chat services to exploit prompt injection, data leakage, and tool misuse.</p>
+              </div>
+              <div class="feature-badge" style="background: rgba(0, 229, 255, 0.05); border: 1px solid rgba(0, 229, 255, 0.15); padding: 14px; border-radius: 8px;">
+                <h4 style="color: var(--info); font-size: 13px; margin-bottom: 6px;">📊 Reports & Alerts</h4>
+                <p style="font-size: 12px; color: var(--text-muted); line-height: 1.4; margin: 0;">Generates HTML, JSON, and compliance-ready SARIF reports. Sends real-time slack/webhook notification alerts.</p>
+              </div>
+            </div>
+          </section>
+
+          <section class="docs-section">
             <h2>Writing Tests for Arishem</h2>
             <p>
               Arishem is designed to execute autonomous penetration testing loops against target endpoints. 
@@ -265,6 +286,12 @@ const copyToClipboard = async (text: string, id: string) => {
 @media (max-width: 1024px) {
   .grid-container {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .intro-features {
+    grid-template-columns: 1fr !important;
   }
 }
 
