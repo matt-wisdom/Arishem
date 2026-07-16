@@ -19,7 +19,6 @@ async def generate_next_step(
     
     # 1. Build context about target function and goal
     function_ctx = format_function_context(session.function_spec)
-    print(f"Function context:\n{function_ctx}")
     
     # 2. Build session history context
     history_str = ""
