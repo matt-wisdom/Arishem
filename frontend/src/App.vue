@@ -1,11 +1,25 @@
 <script setup lang="ts">
+import { watch } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import AppHeader from './components/Header.vue'
-import { SignedIn, SignedOut } from '@clerk/vue'
+import { SignedIn, SignedOut, useAuth } from '@clerk/vue'
 import { useRoute, useRouter } from 'vue-router'
 
 const route = useRoute()
 const router = useRouter()
+const { isSignedIn, isLoaded } = useAuth()
+
+watch(
+  [() => route.path, isSignedIn, isLoaded],
+  ([path, signedIn, loaded]) => {
+    if (loaded && signedIn === false) {
+      if (path !== '/docs' && path !== '/sign-in' && path !== '/sign-up') {
+        router.push('/sign-in')
+      }
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
