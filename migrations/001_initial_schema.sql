@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS scans (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    title VARCHAR(255) DEFAULT '',
     type VARCHAR(50) NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'queued',
     target TEXT NOT NULL,
@@ -32,6 +33,7 @@ CREATE TABLE IF NOT EXISTS scans (
 CREATE TABLE IF NOT EXISTS llm_pentest_runs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     org_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    title VARCHAR(255) DEFAULT '',
     target_endpoint TEXT NOT NULL,
     status VARCHAR(50) NOT NULL DEFAULT 'queued',
     test_modules TEXT[],

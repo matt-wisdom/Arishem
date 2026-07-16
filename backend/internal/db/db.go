@@ -27,6 +27,13 @@ func Init() error {
 	}
 
 	Pool = pool
+
+	// Enforce schema updates dynamically
+	_, _ = Pool.Exec(ctx, `
+		ALTER TABLE scans ADD COLUMN IF NOT EXISTS title VARCHAR(255) DEFAULT '';
+		ALTER TABLE llm_pentest_runs ADD COLUMN IF NOT EXISTS title VARCHAR(255) DEFAULT '';
+	`)
+
 	return nil
 }
 

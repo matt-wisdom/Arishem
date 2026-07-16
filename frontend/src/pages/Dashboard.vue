@@ -90,7 +90,7 @@ const loadDashboardData = async () => {
     const combined = [
       ...runs.map((r: any) => ({
         id: r.id,
-        name: r.target_endpoint,
+        name: r.title || r.target_endpoint,
         type: 'LLM Pentest',
         status: r.status,
         date: new Date(r.created_at).toLocaleDateString(),

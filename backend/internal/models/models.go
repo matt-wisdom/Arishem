@@ -38,6 +38,7 @@ const (
 type Scan struct {
 	ID          uuid.UUID  `json:"id"`
 	OrgID       uuid.UUID  `json:"org_id"`
+	Title       string     `json:"title"`
 	Type        ScanType   `json:"type"`
 	Status      ScanStatus `json:"status"`
 	Target      string     `json:"target"`
@@ -49,6 +50,7 @@ type Scan struct {
 type LLMPentestRun struct {
 	ID             uuid.UUID  `json:"id"`
 	OrgID          uuid.UUID  `json:"org_id"`
+	Title          string     `json:"title"`
 	TargetEndpoint string     `json:"target_endpoint"`
 	Status         ScanStatus `json:"status"`
 	TestModules    []string   `json:"test_modules"`

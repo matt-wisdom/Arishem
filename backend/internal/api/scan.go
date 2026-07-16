@@ -13,6 +13,7 @@ import (
 )
 
 type CreateScanRequest struct {
+	Title  string `json:"title"`
 	Target string `json:"target"`
 	Branch string `json:"branch"`
 }
@@ -45,6 +46,7 @@ func CreateCodeScan(c *fiber.Ctx) error {
 	scan := models.Scan{
 		ID:        uuid.New(),
 		OrgID:     orgUUID,
+		Title:     req.Title,
 		Type:      models.ScanTypeCode,
 		Status:    models.ScanStatusQueued,
 		Target:    req.Target,
@@ -57,9 +59,9 @@ func CreateCodeScan(c *fiber.Ctx) error {
 	}
 
 	_, err = db.GetPool().Exec(c.Context(), `
-		INSERT INTO scans (id, org_id, type, status, target, branch, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
-	`, scan.ID, scan.OrgID, scan.Type, scan.Status, scan.Target, scan.Branch, scan.CreatedAt)
+		INSERT INTO scans (id, org_id, title, type, status, target, branch, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+	`, scan.ID, scan.OrgID, scan.Title, scan.Type, scan.Status, scan.Target, scan.Branch, scan.CreatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create scan"})
@@ -101,6 +103,7 @@ func CreateWebappScan(c *fiber.Ctx) error {
 	scan := models.Scan{
 		ID:        uuid.New(),
 		OrgID:     orgUUID,
+		Title:     req.Title,
 		Type:      models.ScanTypeWebapp,
 		Status:    models.ScanStatusQueued,
 		Target:    req.Target,
@@ -108,9 +111,9 @@ func CreateWebappScan(c *fiber.Ctx) error {
 	}
 
 	_, err = db.GetPool().Exec(c.Context(), `
-		INSERT INTO scans (id, org_id, type, status, target, created_at)
-		VALUES ($1, $2, $3, $4, $5, $6)
-	`, scan.ID, scan.OrgID, scan.Type, scan.Status, scan.Target, scan.CreatedAt)
+		INSERT INTO scans (id, org_id, title, type, status, target, created_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`, scan.ID, scan.OrgID, scan.Title, scan.Type, scan.Status, scan.Target, scan.CreatedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "failed to create scan"})
@@ -129,7 +132,7 @@ func ListScans(c *fiber.Ctx) error {
 	orgUUID, _ := uuid.Parse(orgID)
 
 	rows, err := db.GetPool().Query(c.Context(), `
-		SELECT id, org_id, type, status, target, branch, created_at, completed_at
+		SELECT id, org_id, title, type, status, target, branch, created_at, completed_at
 		FROM scans WHERE org_id = $1 ORDER BY created_at DESC LIMIT 50
 	`, orgUUID)
 	if err != nil {
@@ -140,7 +143,7 @@ func ListScans(c *fiber.Ctx) error {
 	var scans []models.Scan
 	for rows.Next() {
 		var scan models.Scan
-		if err := rows.Scan(&scan.ID, &scan.OrgID, &scan.Type, &scan.Status, &scan.Target, &scan.Branch, &scan.CreatedAt, &scan.CompletedAt); err != nil {
+		if err := rows.Scan(&scan.ID, &scan.OrgID, &scan.Title, &scan.Type, &scan.Status, &scan.Target, &scan.Branch, &scan.CreatedAt, &scan.CompletedAt); err != nil {
 			continue
 		}
 		scans = append(scans, scan)
@@ -164,9 +167,9 @@ func GetScan(c *fiber.Ctx) error {
 
 	var scan models.Scan
 	err = db.GetPool().QueryRow(c.Context(), `
-		SELECT id, org_id, type, status, target, branch, created_at, completed_at
+		SELECT id, org_id, title, type, status, target, branch, created_at, completed_at
 		FROM scans WHERE id = $1 AND org_id = $2
-	`, scanUUID, orgUUID).Scan(&scan.ID, &scan.OrgID, &scan.Type, &scan.Status, &scan.Target, &scan.Branch, &scan.CreatedAt, &scan.CompletedAt)
+	`, scanUUID, orgUUID).Scan(&scan.ID, &scan.OrgID, &scan.Title, &scan.Type, &scan.Status, &scan.Target, &scan.Branch, &scan.CreatedAt, &scan.CompletedAt)
 
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "scan not found"})
