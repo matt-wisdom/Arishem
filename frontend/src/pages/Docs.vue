@@ -223,6 +223,7 @@ const copyToClipboard = async (text: string, id: string) => {
   display: flex;
   flex-direction: column;
   gap: 32px;
+  min-width: 0;
 }
 
 .docs-section {
