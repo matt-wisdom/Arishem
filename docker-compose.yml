@@ -53,6 +53,13 @@ services:
       - ./backend/data:/var/lib/arishem
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/arishem:/tmp/arishem
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: ${AWS_REGION:-eu-west-1}
+        awslogs-group: arishem-backend
+        awslogs-stream: backend-${HOSTNAME:-ecs}
+        awslogs-create-group: "true"
     # depends_on:
       # minio:
       #   condition: service_healthy
