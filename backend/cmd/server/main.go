@@ -4,23 +4,23 @@ import (
 	"bufio"
 	"context"
 	"log"
-	"log/slog"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
-
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	"github.com/gofiber/fiber/v2/middleware/logger"
-	"github.com/gofiber/fiber/v2/middleware/recover"
 
 	"arishem/internal/api"
 	"arishem/internal/db"
 	"arishem/internal/jobs"
 	"arishem/internal/middleware"
 	"arishem/internal/reports"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/fiber/v2/middleware/recover"
+	"log/slog"
+	"strings"
 )
 
 func main() {
@@ -48,10 +48,10 @@ func main() {
 				ADD COLUMN IF NOT EXISTS model VARCHAR(100) DEFAULT '',
 				ADD COLUMN IF NOT EXISTS llm_provider VARCHAR(50) DEFAULT '',
 				ADD COLUMN IF NOT EXISTS api_base TEXT DEFAULT '',
-				ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT '',
-				ADD COLUMN IF NOT EXISTS budget INT DEFAULT 0,
-				ADD COLUMN IF NOT EXISTS concurrency INT DEFAULT 0,
-				ADD COLUMN IF NOT EXISTS version INT DEFAULT 1;
+				ADD COLUMN IF NOT EXISTS mode VARCHAR(50) DEFAULT 'both',
+				ADD COLUMN IF NOT EXISTS budget INTEGER DEFAULT 8,
+				ADD COLUMN IF NOT EXISTS concurrency INTEGER DEFAULT 4,
+				ADD COLUMN IF NOT EXISTS version INTEGER DEFAULT 1
 			`)
 			if err != nil {
 				slog.Error("Failed to auto-upgrade DB schema for llm_pentest_runs", slog.Any("error", err))
@@ -137,22 +137,8 @@ func loadEnv() {
 			}
 			parts := strings.SplitN(line, "=", 2)
 			if len(parts) == 2 {
-				key := strings.TrimSpace(parts[0])
-				val := strings.TrimSpace(parts[1])
-				
-				// Strip inline comments starting with '#'
-				if idx := strings.Index(val, "#"); idx != -1 {
-					val = strings.TrimSpace(val[:idx])
-				}
-				
-				val = strings.Trim(val, `"'`)
-				val = strings.TrimSpace(val)
-				if os.Getenv(key) == "" {
-					os.Setenv(key, val)
-				}
+				os.Setenv(parts[0], parts[1])
 			}
 		}
-		log.Printf("Loaded environment variables from %s", path)
-		break
 	}
 }
