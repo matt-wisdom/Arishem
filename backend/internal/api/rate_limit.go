@@ -42,7 +42,7 @@ func CheckDailyLimitExceeded(ctx context.Context, orgID string) (bool, error) {
 		SELECT COUNT(*) FROM (
 			SELECT id FROM scans WHERE org_id = $1 AND created_at >= NOW() - INTERVAL '1 day'
 			UNION ALL
-			SELECT id FROM llm_pentest_runs WHERE org_id = $1 AND created_at >= NOW() - INTERVAL '1 day'
+			SELECT id FROM llm_pentest_runs WHERE org_id = $1 AND config_mode != 'custom' AND created_at >= NOW() - INTERVAL '1 day'
 		) as total
 	`
 
