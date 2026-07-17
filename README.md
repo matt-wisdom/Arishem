@@ -102,7 +102,7 @@ python3 -m arishem.cli report results.json --format html --output report.html
 
 ## 🌐 Full-Stack Deployment (Docker Compose)
 
-Deploy the entire stack (PostgreSQL, Redis, MinIO S3, Go Backend) using the root configuration:
+Deploy the entire stack (PostgreSQL, Redis, S3-compatible storage, Go Backend) using the root configuration:
 
 1. **Setup Env Variables**:
    Copy `.env.example` to `.env` and fill in your values (including Clerk auth keys):

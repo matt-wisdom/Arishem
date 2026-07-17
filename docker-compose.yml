@@ -13,6 +13,7 @@ services:
     depends_on:
       - backend
 
+  # Uncomment to run local S3-compatible storage (MinIO)
   # minio:
   #   image: minio/minio
   #   command: server /data --console-address ":9001"
