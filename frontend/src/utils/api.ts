@@ -4,3 +4,8 @@ export const apiUrl = (path: string) => {
   const cleanPath = path.startsWith('/') ? path : `/${path}`
   return `${API_BASE}${cleanPath}`
 }
+
+export const handleUnauthorized = () => {
+  localStorage.removeItem('token')
+  window.location.href = '/sign-in'
+}

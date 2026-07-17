@@ -7,6 +7,11 @@ import { apiUrl } from '@/utils/api'
 const router = useRouter()
 const { getToken } = useAuth()
 
+const handleUnauthorized = () => {
+  localStorage.removeItem('token')
+  window.location.href = '/sign-in'
+}
+
 
 
 const recentScans = ref<any[]>([])
@@ -42,6 +47,7 @@ const loadDashboardData = async () => {
     
     // Fetch runs
     const runsRes = await fetch(apiUrl('/llmpentest'), { headers })
+    if (runsRes.status === 401) { handleUnauthorized(); return }
     const runs = runsRes.ok ? await runsRes.json() : []
     
     // Compute unique targets (Protected APIs)
@@ -55,6 +61,7 @@ const loadDashboardData = async () => {
       ...runs.filter((r: any) => r.status === 'completed').map(async (r: any) => {
         try {
           const detailRes = await fetch(apiUrl(`/llmpentest/${r.id}`), { headers })
+          if (detailRes.status === 401) { handleUnauthorized(); return }
           if (detailRes.ok) {
             const data = await detailRes.json()
             if (data.findings) findingsList.push(...data.findings)

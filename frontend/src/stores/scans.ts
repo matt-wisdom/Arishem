@@ -4,6 +4,11 @@ import { useAuth } from '@clerk/vue'
 import type { Scan } from './types'
 import { apiUrl } from '@/utils/api'
 
+const handleUnauthorized = () => {
+  localStorage.removeItem('token')
+  window.location.href = '/sign-in'
+}
+
 export const useScansStore = defineStore('scans', () => {
   const scans = ref<Scan[]>([])
   const loading = ref(false)
@@ -25,6 +30,7 @@ export const useScansStore = defineStore('scans', () => {
     try {
       const headers = await getHeaders()
       const res = await fetch(apiUrl('/scans'), { headers })
+      if (res.status === 401) { handleUnauthorized(); return }
       if (!res.ok) throw new Error('Failed to fetch scans')
       scans.value = await res.json()
     } catch (e) {
@@ -49,6 +55,7 @@ export const useScansStore = defineStore('scans', () => {
         },
         body: JSON.stringify(body)
       })
+      if (res.status === 401) { handleUnauthorized(); return }
       if (!res.ok) throw new Error('Failed to create scan')
       await fetchScans()
     } catch (e) {
@@ -68,6 +75,7 @@ export const useScansStore = defineStore('scans', () => {
         method: 'DELETE',
         headers: authHeaders
       })
+      if (res.status === 401) { handleUnauthorized(); return }
       if (!res.ok) throw new Error('Failed to cancel scan')
       await fetchScans()
     } catch (e) {

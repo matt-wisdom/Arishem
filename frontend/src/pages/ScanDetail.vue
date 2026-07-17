@@ -2,7 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@clerk/vue'
-import { apiUrl } from '@/utils/api'
+import { apiUrl, handleUnauthorized } from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -37,6 +37,7 @@ const loadScanDetail = async () => {
     const res = await fetch(apiUrl(`/scans/${route.params.id}`), {
       headers: { 'Authorization': `Bearer ${token}` }
     })
+    if (res.status === 401) { handleUnauthorized(); return }
     if (!res.ok) throw new Error('Failed to load scan details')
     const data = await res.json()
     scan.value = data.scan
