@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@clerk/vue'
+import { apiUrl } from '@/utils/api'
 
 const route = useRoute()
 const router = useRouter()
@@ -33,7 +34,7 @@ const loadScanDetail = async () => {
   try {
     const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
     const token = (await (tokenFn as any)()) || localStorage.getItem('token') || ''
-    const res = await fetch(`/api/scans/${route.params.id}`, {
+    const res = await fetch(apiUrl(`/scans/${route.params.id}`), {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (!res.ok) throw new Error('Failed to load scan details')

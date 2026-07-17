@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuth } from '@clerk/vue'
 import type { Scan } from './types'
+import { apiUrl } from '@/utils/api'
 
 export const useScansStore = defineStore('scans', () => {
   const scans = ref<Scan[]>([])
@@ -23,7 +24,7 @@ export const useScansStore = defineStore('scans', () => {
     error.value = null
     try {
       const headers = await getHeaders()
-      const res = await fetch('/api/scans', { headers })
+      const res = await fetch(apiUrl('/scans'), { headers })
       if (!res.ok) throw new Error('Failed to fetch scans')
       scans.value = await res.json()
     } catch (e) {
@@ -37,7 +38,7 @@ export const useScansStore = defineStore('scans', () => {
     loading.value = true
     error.value = null
     try {
-      const url = type === 'code' ? '/api/scans/code' : '/api/scans/webapp'
+      const url = type === 'code' ? apiUrl('/scans/code') : apiUrl('/scans/webapp')
       const body = type === 'code' ? { target, branch: branch || 'main' } : { target }
       const authHeaders = await getHeaders()
       const res = await fetch(url, {
@@ -63,7 +64,7 @@ export const useScansStore = defineStore('scans', () => {
     error.value = null
     try {
       const authHeaders = await getHeaders()
-      const res = await fetch(`/api/scans/${id}`, {
+      const res = await fetch(apiUrl(`/scans/${id}`), {
         method: 'DELETE',
         headers: authHeaders
       })
