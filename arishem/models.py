@@ -61,6 +61,8 @@ class ProbeSession:
     history: list[Turn] = field(default_factory=list)
     budget: int = 8                  # max turns
     status: str = "active"           # active | found | exhausted | blocked
+    history_summary: str = ""
+    scout_analysis: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -70,6 +72,8 @@ class ProbeSession:
             "history": [t.to_dict() for t in self.history],
             "budget": self.budget,
             "status": self.status,
+            "history_summary": self.history_summary,
+            "scout_analysis": self.scout_analysis,
         }
 
     @classmethod
@@ -81,6 +85,8 @@ class ProbeSession:
             history=[Turn.from_dict(t) for t in data.get("history", [])],
             budget=data.get("budget", 8),
             status=data.get("status", "active"),
+            history_summary=data.get("history_summary", ""),
+            scout_analysis=data.get("scout_analysis", ""),
         )
 
 @dataclass

@@ -39,6 +39,24 @@ Turn {idx}:
     if not session.history and attack_class_cfg.example_payloads:
         seed_context = f"\nHere are some example seed inputs for inspiration: {json.dumps(attack_class_cfg.example_payloads)}"
 
+    # 4. Build historical memory (cross-run memory)
+    history_summary_ctx = ""
+    if getattr(session, "history_summary", ""):
+        history_summary_ctx = f"""
+---
+HISTORICAL MEMORY (Knowledge from previous versions of this target):
+{session.history_summary}
+---"""
+
+    # 5. Build scout analysis (multi-agent teamwork)
+    scout_analysis_ctx = ""
+    if getattr(session, "scout_analysis", ""):
+        scout_analysis_ctx = f"""
+---
+SCOUT STATIC ANALYSIS (Vulnerability Hypotheses):
+{session.scout_analysis}
+---"""
+
     user_prompt = f"""
 You are probing the following function for security vulnerabilities:
 
@@ -46,7 +64,8 @@ You are probing the following function for security vulnerabilities:
 
 Adversarial Security Goal: {session.goal}
 Remaining Turn Budget: {session.budget - len(session.history)}
-
+{history_summary_ctx}
+{scout_analysis_ctx}
 ---
 Session History:
 {history_str}

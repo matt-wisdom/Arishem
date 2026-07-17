@@ -18,6 +18,48 @@ async def execute_target_function(func: Any, kwargs: Dict[str, Any]) -> Any:
     else:
         return func(**kwargs)
 
+async def run_scout_agent(session: ProbeSession, config: Dict[str, Any]) -> str:
+    """
+    Invokes the Scout Agent to statically profile the target and propose vulnerability hypotheses.
+    """
+    import json
+    from arishem.llm import format_function_context, call_llm, SCOUT_ANALYSIS_SCHEMA
+    
+    function_ctx = format_function_context(session.function_spec)
+    
+    system_prompt = (
+        "You are a specialized static analysis security scout. Your job is to analyze the "
+        "provided function signature, docstring, and source code, and identify potential "
+        "vulnerability entrypoints or logical hotspots for a specific attack class."
+    )
+    
+    user_prompt = f"""
+Analyze the following target function for security vulnerabilities:
+
+{function_ctx}
+
+We are targeting this function with the Attack Class: {session.attack_class}
+Adversarial Security Goal: {session.goal}
+
+Please perform a static analysis of the source code and docstring. List 3 specific vulnerability hypotheses, prompt injection angles, or boundary conditions the attacker agent should focus on.
+"""
+    
+    try:
+        response = await call_llm(
+            config=config,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            response_schema=SCOUT_ANALYSIS_SCHEMA
+        )
+        if isinstance(response, dict):
+            hypotheses = response.get("vulnerability_hypotheses", [])
+            reasoning = response.get("reasoning", "")
+            return "Hypotheses:\n" + "\n".join(f"- {h}" for h in hypotheses) + f"\nReasoning: {reasoning}"
+        return str(response)
+    except Exception as e:
+        logger.error(f"Scout Agent static analysis failed: {e}")
+        return f"Scout static analysis failed: {e}"
+
 async def run_probe_session(
     session: ProbeSession,
     func_callable: Any,
@@ -30,6 +72,12 @@ async def run_probe_session(
     Returns a Finding object if a vulnerability is discovered and confirmed, else None.
     """
     logger.info(f"Starting session: {session.function_spec.name} with attack class '{session.attack_class}'")
+
+    # Run static analysis Scout Agent prior to beginning turns (Multi-Agent Teamwork)
+    if not getattr(session, "scout_analysis", ""):
+        logger.info(f"Invoking Scout Agent (Static Profiler) for target {session.function_spec.name} [{session.attack_class}]...")
+        session.scout_analysis = await run_scout_agent(session, config)
+        logger.info(f"Scout static analysis complete. Hypotheses: {session.scout_analysis}")
 
     consecutive_errors = 0
 

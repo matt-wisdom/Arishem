@@ -56,6 +56,7 @@ def main():
     run_parser.add_argument("--concurrency", type=int, help="Max concurrent probe sessions (default: 4)")
     run_parser.add_argument("--output", help="Path to save report (e.g. report.html or results.json)")
     run_parser.add_argument("--config", default="arishem.config.toml", help="Path to arishem.config.toml")
+    run_parser.add_argument("--history-file", help="Path to a file containing historical knowledge from previous runs")
 
     # 2. list-classes subcommand
     subparsers.add_parser("list-classes", help="List all registered attack classes")
@@ -134,6 +135,15 @@ async def handle_run(args):
         # Start live reporting table
         reporter.start(dummy_sessions)
 
+        # Parse history file if provided
+        history_summary = ""
+        if args.history_file and os.path.exists(args.history_file):
+            try:
+                with open(args.history_file, "r", encoding="utf-8") as f:
+                    history_summary = f.read()
+            except Exception as e:
+                console.print(f"[yellow]Warning: Failed to read history file: {e}[/yellow]")
+
         # Run actual penetration test
         result = await run_arishem(
             target_path=target_path,
@@ -142,7 +152,8 @@ async def handle_run(args):
             budget=args.budget,
             concurrency=args.concurrency,
             config_path=args.config,
-            on_turn_callback=on_turn
+            on_turn_callback=on_turn,
+            history_summary=history_summary
         )
 
         reporter.finish(result)

@@ -143,6 +143,22 @@ FINDING_SCORING_SCHEMA = {
     "required": ["severity", "title", "description", "remediation"]
 }
 
+SCOUT_ANALYSIS_SCHEMA = {
+    "type": "OBJECT",
+    "properties": {
+        "vulnerability_hypotheses": {
+            "type": "ARRAY",
+            "items": {"type": "STRING"},
+            "description": "3 specific vulnerability hypotheses, entry points, or boundary conditions the attacker agent should focus on."
+        },
+        "reasoning": {
+            "type": "STRING",
+            "description": "General explanation of the static analysis and target surface."
+        }
+    },
+    "required": ["vulnerability_hypotheses", "reasoning"]
+}
+
 # --- Core Async LLM client ---
 async def call_llm(
     config: Dict[str, Any],
@@ -377,6 +393,17 @@ def simulate_mock_llm(user_prompt: str, response_schema: Dict[str, Any]) -> Dict
             "title": "Indirect/Direct LLM Prompt Injection Vulnerability",
             "description": "The function allows bypass of system instructions when injected with specific instruction overrides, leading to unexpected tool invocation and data leakage.",
             "remediation": "Apply robust system-level input validation, use XML-tagging structures to wrap user inputs, and enforce strictly typed schema restrictions on agent outputs."
+        }
+
+    # 4. Scout Analysis schema matching
+    elif response_schema == SCOUT_ANALYSIS_SCHEMA:
+        return {
+            "vulnerability_hypotheses": [
+                "Target fails to sanitize inputs before formatting them into system prompts.",
+                "Target allows raw user instructions to override system-level safety instructions.",
+                "Exception handling leaks internal configuration variables or environment context."
+            ],
+            "reasoning": "The target relies on direct string interpolation for inputs, making it vulnerable to instruction injection."
         }
 
     return {}

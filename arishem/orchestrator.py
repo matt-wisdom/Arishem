@@ -54,7 +54,8 @@ async def run_arishem(
     budget: Optional[int] = None,
     concurrency: int = 4,
     config_path: str = "arishem.config.toml",
-    on_turn_callback = None
+    on_turn_callback = None,
+    history_summary: str = ""
 ) -> ArishemRunResult:
     """
     Programmatic entrypoint to run Arishem against a target module.
@@ -136,7 +137,8 @@ async def run_arishem(
                 attack_class=attack_class_id,
                 goal=formatted_goal,
                 budget=final_budget,
-                status="active"
+                status="active",
+                history_summary=history_summary
             )
             sessions.append(session)
             session_tasks.append(execute_task(session, func_callable))
