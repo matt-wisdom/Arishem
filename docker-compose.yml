@@ -52,7 +52,7 @@ services:
       - EXPECTS_UNSAFE_CODE=true
     volumes:
       - ./backend/data:/var/lib/arishem
-      - .:/arishem:ro
+      - .:/workspace
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/arishem:/tmp/arishem
     logging:
