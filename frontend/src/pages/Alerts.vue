@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuth } from '@clerk/vue'
-import { apiUrl, handleUnauthorized } from '@/utils/api'
 
 const { getToken } = useAuth()
 const alerts = ref<any[]>([])
@@ -33,8 +32,7 @@ const loadAlerts = async () => {
   error.value = null
   try {
     const headers = await getHeaders()
-    const res = await fetch(apiUrl('/alerts'), { headers })
-    if (res.status === 401) { handleUnauthorized(); return }
+    const res = await fetch('/api/alerts', { headers })
     if (!res.ok) throw new Error('Failed to fetch alert rules')
     alerts.value = await res.json()
   } catch (e) {
@@ -51,9 +49,10 @@ onMounted(() => {
 const handleCreateAlert = async () => {
   if (!newRule.value.target) return
   try {
+    // Determine target config key
     const configKey = newRule.value.channel === 'email' ? 'email' : 'url'
     const authHeaders = await getHeaders()
-    const res = await fetch(apiUrl('/alerts'), {
+    const res = await fetch('/api/alerts', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +64,6 @@ const handleCreateAlert = async () => {
         channel_config: { [configKey]: newRule.value.target }
       })
     })
-    if (res.status === 401) { handleUnauthorized(); return }
     if (!res.ok) throw new Error('Failed to create alert rule')
     showNewModal.value = false
     newRule.value.target = ''
@@ -77,8 +75,9 @@ const handleCreateAlert = async () => {
 
 const handleToggleActive = async (rule: any) => {
   try {
+    // Note: backend UpdateAlert expects CreateAlertRequest in body
     const authHeaders = await getHeaders()
-    const res = await fetch(apiUrl(`/alerts/${rule.id}`), {
+    const res = await fetch(`/api/alerts/${rule.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -88,10 +87,9 @@ const handleToggleActive = async (rule: any) => {
         severity_threshold: rule.severity_threshold,
         channel: rule.channel,
         channel_config: rule.channel_config,
-        active: !rule.active
+        active: !rule.active // toggle
       })
     })
-    if (res.status === 401) { handleUnauthorized(); return }
     if (!res.ok) throw new Error('Failed to update alert rule')
     loadAlerts()
   } catch (e) {
@@ -103,11 +101,10 @@ const handleDeleteAlert = async (id: string) => {
   if (!confirm('Are you sure you want to delete this alert rule?')) return
   try {
     const authHeaders = await getHeaders()
-    const res = await fetch(apiUrl(`/alerts/${id}`), {
+    const res = await fetch(`/api/alerts/${id}`, {
       method: 'DELETE',
       headers: authHeaders
     })
-    if (res.status === 401) { handleUnauthorized(); return }
     if (!res.ok) throw new Error('Failed to delete alert rule')
     loadAlerts()
   } catch (e) {
@@ -118,11 +115,10 @@ const handleDeleteAlert = async (id: string) => {
 const handleTestAlert = async (id: string) => {
   try {
     const authHeaders = await getHeaders()
-    const res = await fetch(apiUrl(`/alerts/test/${id}`), {
+    const res = await fetch(`/api/alerts/test/${id}`, {
       method: 'POST',
       headers: authHeaders
     })
-    if (res.status === 401) { handleUnauthorized(); return }
     if (!res.ok) throw new Error('Failed to send test alert')
     alert('Test alert dispatched successfully!')
   } catch (e) {

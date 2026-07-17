@@ -2,15 +2,9 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@clerk/vue'
-import { apiUrl } from '@/utils/api'
 
 const router = useRouter()
 const { getToken } = useAuth()
-
-const handleUnauthorized = () => {
-  localStorage.removeItem('token')
-  window.location.href = '/sign-in'
-}
 
 
 
@@ -46,8 +40,7 @@ const loadDashboardData = async () => {
     const headers = { 'Authorization': `Bearer ${token}` }
     
     // Fetch runs
-    const runsRes = await fetch(apiUrl('/llmpentest'), { headers })
-    if (runsRes.status === 401) { handleUnauthorized(); return }
+    const runsRes = await fetch('/api/llmpentest', { headers })
     const runs = runsRes.ok ? await runsRes.json() : []
     
     // Compute unique targets (Protected APIs)
@@ -60,8 +53,7 @@ const loadDashboardData = async () => {
     const fetchPromises = [
       ...runs.filter((r: any) => r.status === 'completed').map(async (r: any) => {
         try {
-          const detailRes = await fetch(apiUrl(`/llmpentest/${r.id}`), { headers })
-          if (detailRes.status === 401) { handleUnauthorized(); return }
+          const detailRes = await fetch(`/api/llmpentest/${r.id}`, { headers })
           if (detailRes.ok) {
             const data = await detailRes.json()
             if (data.findings) findingsList.push(...data.findings)

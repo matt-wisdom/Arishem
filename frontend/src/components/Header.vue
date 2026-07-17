@@ -2,7 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useUser, useClerk, useOrganization, useAuth } from '@clerk/vue'
 import { useRoute, useRouter } from 'vue-router'
-import { apiUrl } from '@/utils/api'
+import { apiUrl, handleUnauthorized } from '@/utils/api'
 
 const { user } = useUser()
 const clerk = useClerk()
@@ -56,6 +56,11 @@ const loadNotifications = async () => {
       fetch(apiUrl('/llmpentest'), { headers }),
       fetch(apiUrl('/scans'), { headers })
     ])
+    
+    if (runsRes.status === 401 || scansRes.status === 401) {
+      handleUnauthorized()
+      return
+    }
     
     let list: any[] = []
     if (runsRes.ok) {

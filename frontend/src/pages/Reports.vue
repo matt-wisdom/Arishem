@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useAuth } from '@clerk/vue'
-import { apiUrl, handleUnauthorized } from '@/utils/api'
 
 const { getToken } = useAuth()
 const reports = ref<any[]>([])
@@ -32,8 +31,7 @@ const loadReports = async () => {
   error.value = null
   try {
     const headers = await getHeaders()
-    const res = await fetch(apiUrl('/reports'), { headers })
-    if (res.status === 401) { handleUnauthorized(); return }
+    const res = await fetch('/api/reports', { headers })
     if (!res.ok) throw new Error('Failed to fetch reports')
     reports.value = await res.json()
   } catch (e) {
@@ -62,8 +60,7 @@ const getReportType = (report: any) => {
 const downloadReport = async (id: string, format: string) => {
   try {
     const headers = await getHeaders()
-    const res = await fetch(apiUrl(`/reports/${id}/download?format=${format}`), { headers })
-    if (res.status === 401) { handleUnauthorized(); return }
+    const res = await fetch(`/api/reports/${id}/download?format=${format}`, { headers })
     if (!res.ok) throw new Error('Failed to generate download link')
     const data = await res.json()
     if (data.url) {

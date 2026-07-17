@@ -10,14 +10,11 @@ const router = useRouter()
 const { isSignedIn, isLoaded } = useAuth()
 const sidebarOpen = ref(false)
 
-let hasRedirected = false
-
 watch(
   [() => route.path, isSignedIn, isLoaded],
   ([path, signedIn, loaded]) => {
-    if (loaded && signedIn === false && !hasRedirected) {
+    if (loaded && signedIn === false) {
       if (path !== '/docs' && path !== '/sign-in' && path !== '/sign-up') {
-        hasRedirected = true
         router.push('/sign-in')
       }
     }

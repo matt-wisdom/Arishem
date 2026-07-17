@@ -2,12 +2,6 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { useAuth } from '@clerk/vue'
 import type { Scan } from './types'
-import { apiUrl } from '@/utils/api'
-
-const handleUnauthorized = () => {
-  localStorage.removeItem('token')
-  window.location.href = '/sign-in'
-}
 
 export const useScansStore = defineStore('scans', () => {
   const scans = ref<Scan[]>([])
@@ -29,8 +23,7 @@ export const useScansStore = defineStore('scans', () => {
     error.value = null
     try {
       const headers = await getHeaders()
-      const res = await fetch(apiUrl('/scans'), { headers })
-      if (res.status === 401) { handleUnauthorized(); return }
+      const res = await fetch('/api/scans', { headers })
       if (!res.ok) throw new Error('Failed to fetch scans')
       scans.value = await res.json()
     } catch (e) {
@@ -44,7 +37,7 @@ export const useScansStore = defineStore('scans', () => {
     loading.value = true
     error.value = null
     try {
-      const url = type === 'code' ? apiUrl('/scans/code') : apiUrl('/scans/webapp')
+      const url = type === 'code' ? '/api/scans/code' : '/api/scans/webapp'
       const body = type === 'code' ? { target, branch: branch || 'main' } : { target }
       const authHeaders = await getHeaders()
       const res = await fetch(url, {
@@ -55,7 +48,6 @@ export const useScansStore = defineStore('scans', () => {
         },
         body: JSON.stringify(body)
       })
-      if (res.status === 401) { handleUnauthorized(); return }
       if (!res.ok) throw new Error('Failed to create scan')
       await fetchScans()
     } catch (e) {
@@ -71,11 +63,10 @@ export const useScansStore = defineStore('scans', () => {
     error.value = null
     try {
       const authHeaders = await getHeaders()
-      const res = await fetch(apiUrl(`/scans/${id}`), {
+      const res = await fetch(`/api/scans/${id}`, {
         method: 'DELETE',
         headers: authHeaders
       })
-      if (res.status === 401) { handleUnauthorized(); return }
       if (!res.ok) throw new Error('Failed to cancel scan')
       await fetchScans()
     } catch (e) {
