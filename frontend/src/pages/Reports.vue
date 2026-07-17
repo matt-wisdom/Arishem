@@ -1,11 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import { useAuth } from '@clerk/vue'
 
 const { getToken } = useAuth()
 const reports = ref<any[]>([])
 const loading = ref(true)
 const error = ref<string | null>(null)
+
+const currentPage = ref(1)
+const itemsPerPage = 6
+
+const totalPages = computed(() => {
+  return Math.ceil(reports.value.length / itemsPerPage)
+})
+
+const paginatedReports = computed(() => {
+  const start = (currentPage.value - 1) * itemsPerPage
+  const end = start + itemsPerPage
+  return reports.value.slice(start, end)
+})
 
 const getHeaders = async () => {
   const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
@@ -66,7 +79,7 @@ const downloadReport = async (id: string, format: string) => {
       <div v-if="loading && reports.length === 0" class="loading-placeholder">Loading reports...</div>
       <div v-else-if="reports.length === 0" class="empty-placeholder">No reports generated yet.</div>
       <div v-else class="reports-grid">
-        <div v-for="report in reports" :key="report.id" class="report-card">
+        <div v-for="report in paginatedReports" :key="report.id" class="report-card">
           <div class="report-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" />
@@ -85,6 +98,29 @@ const downloadReport = async (id: string, format: string) => {
             <button @click="downloadReport(report.id, 'md')" class="action-btn">MD</button>
             <button @click="downloadReport(report.id, 'sarif')" class="action-btn">SARIF</button>
           </div>
+        </div>
+
+        <!-- Pagination Controls -->
+        <div v-if="totalPages > 1" class="pagination-controls" style="display: flex; justify-content: center; align-items: center; gap: 16px; margin-top: 32px;">
+          <button 
+            class="btn-secondary" 
+            :disabled="currentPage === 1" 
+            @click="currentPage--"
+            style="padding: 8px 16px; font-size: 13px;"
+          >
+            Previous
+          </button>
+          <span style="font-family: 'Share Tech Mono', monospace; color: var(--text-muted); font-size: 14px;">
+            Page <strong style="color: var(--accent);">{{ currentPage }}</strong> of <strong>{{ totalPages }}</strong>
+          </span>
+          <button 
+            class="btn-secondary" 
+            :disabled="currentPage === totalPages" 
+            @click="currentPage++"
+            style="padding: 8px 16px; font-size: 13px;"
+          >
+            Next
+          </button>
         </div>
       </div>
     </div>
