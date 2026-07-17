@@ -18,7 +18,8 @@ var bucketName string
 func InitS3() error {
 	endpoint := strings.TrimSpace(os.Getenv("S3_ENDPOINT"))
 	if endpoint == "" {
-		endpoint = "localhost:9000"
+		log.Println("S3 not configured - skipping initialization")
+		return nil
 	}
 
 	// Strip inline comments starting with '#'
