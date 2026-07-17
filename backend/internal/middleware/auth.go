@@ -1,22 +1,127 @@
 package middleware
 
 import (
+	"crypto/rsa"
+	"encoding/base64"
+	"encoding/binary"
 	"encoding/json"
 	"fmt"
-	"io"
+	"math/big"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/golang-jwt/jwt/v5"
 )
 
-type ClerkVerifyResponse struct {
-	Sub string `json:"sub"`
+type JWKSCache struct {
+	mu       sync.RWMutex
+	keys     map[string]interface{}
+	jwksURL  string
+	client   *http.Client
 }
 
-var clerkHTTPClient = &http.Client{Timeout: 15 * time.Second}
+func NewJWKSCache(jwksURL string) *JWKSCache {
+	return &JWKSCache{
+		keys:    make(map[string]interface{}),
+		jwksURL: jwksURL,
+		client:  &http.Client{Timeout: 10 * time.Second},
+	}
+}
+
+func (c *JWKSCache) GetKey(kid string) (interface{}, error) {
+	c.mu.RLock()
+	if key, ok := c.keys[kid]; ok {
+		c.mu.RUnlock()
+		return key, nil
+	}
+	c.mu.RUnlock()
+
+	resp, err := c.client.Get(c.jwksURL)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var jwks struct {
+		Keys []struct {
+			Kid string `json:"kid"`
+			Kty string `json:"kty"`
+			Alg string `json:"alg"`
+			Use string `json:"use"`
+			N   string `json:"n"`
+			E   string `json:"e"`
+		} `json:"keys"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&jwks); err != nil {
+		return nil, fmt.Errorf("failed to decode JWKS: %w", err)
+	}
+
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	for _, key := range jwks.Keys {
+		if key.Kty == "RSA" {
+			nBytes, err := base64.RawURLEncoding.DecodeString(key.N)
+			if err != nil {
+				continue
+			}
+			eBytes, err := base64.RawURLEncoding.DecodeString(key.E)
+			if err != nil {
+				continue
+			}
+			var eVal int
+			if len(eBytes) < 4 {
+				padded := make([]byte, 4)
+				copy(padded[4-len(eBytes):], eBytes)
+				eVal = int(binary.BigEndian.Uint32(padded))
+			} else {
+				eVal = int(binary.BigEndian.Uint32(eBytes))
+			}
+			pubKey := &rsa.PublicKey{
+				N: new(big.Int).SetBytes(nBytes),
+				E: eVal,
+			}
+			c.keys[key.Kid] = pubKey
+		} else {
+			c.keys[key.Kid] = key
+		}
+	}
+
+	if key, ok := c.keys[kid]; ok {
+		return key, nil
+	}
+	return nil, fmt.Errorf("key not found: %s", kid)
+}
+
+var (
+	jwksCache     *JWKSCache
+	jwksCacheOnce sync.Once
+)
+
+func getJWKS() *JWKSCache {
+	jwksCacheOnce.Do(func() {
+		jwksURL := os.Getenv("CLERK_JWKS_URL")
+		if jwksURL == "" {
+			jwksURL = "https://clerk.com/.well-known/jwks.json"
+		}
+		jwksCache = NewJWKSCache(jwksURL)
+	})
+	return jwksCache
+}
+
+func getJWKSForIssuer(issuer string) *JWKSCache {
+	jwksURL := issuer + "/.well-known/jwks.json"
+	return NewJWKSCache(jwksURL)
+}
+
+func ResetJWKSCache() {
+	jwksCache = nil
+	jwksCacheOnce = sync.Once{}
+}
 
 func AuthMiddleware(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
@@ -36,57 +141,77 @@ func AuthMiddleware(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "server configuration error"})
 	}
 
-	userID, err := validateClerkToken(secretKey, tokenString)
+	claims, err := validateClerkTokenJWT(secretKey, tokenString)
 	if err != nil {
-		fmt.Printf("Clerk auth error: %v\n", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token: " + err.Error()})
 	}
 
-	c.Locals("user_id", userID)
+	c.Locals("user_id", claims["sub"])
+	if email, ok := claims["email"].(string); ok {
+		c.Locals("user_email", email)
+	}
+	if fn, ok := claims["first_name"].(string); ok {
+		c.Locals("user_first_name", fn)
+	}
+	if ln, ok := claims["last_name"].(string); ok {
+		c.Locals("user_last_name", ln)
+	}
 
 	return c.Next()
 }
 
-func validateClerkToken(secretKey, token string) (string, error) {
-	req, err := http.NewRequest("GET", "https://api.clerk.com/v1/tokens/verify", nil)
+func validateClerkTokenJWT(secretKey, tokenString string) (map[string]interface{}, error) {
+	token, _, err := jwt.NewParser().ParseUnverified(tokenString, jwt.MapClaims{})
 	if err != nil {
-		return "", fmt.Errorf("failed to create request: %w", err)
+		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
 
-	q := req.URL.Query()
-	q.Add("token", token)
-	req.URL.RawQuery = q.Encode()
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
 
-	req.Header.Set("Authorization", "Bearer "+secretKey)
-	req.Header.Set("Content-Type", "application/json")
+	iss, ok := claims["iss"].(string)
+	if !ok || iss == "" {
+		return nil, fmt.Errorf("missing issuer in token")
+	}
 
-	resp, err := clerkHTTPClient.Do(req)
+	kid, ok := token.Header["kid"].(string)
+	if !ok || kid == "" {
+		return nil, fmt.Errorf("missing kid in token header")
+	}
+
+	jwks := getJWKSForIssuer(iss)
+	pubKey, err := jwks.GetKey(kid)
 	if err != nil {
-		return "", fmt.Errorf("failed to validate token: %w", err)
-	}
-	defer resp.Body.Close()
-
-	body, _ := io.ReadAll(resp.Body)
-
-	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("token validation failed with status: %d, body: %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("failed to get public key: %w", err)
 	}
 
-	var verifyResp ClerkVerifyResponse
-	if err := json.Unmarshal(body, &verifyResp); err != nil {
-		return "", fmt.Errorf("failed to decode verify response: %w", err)
+	token, err = jwt.Parse(tokenString, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodRSA); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return pubKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		return nil, fmt.Errorf("JWT signature validation failed: %v", err)
 	}
 
-	if verifyResp.Sub == "" {
-		return "", fmt.Errorf("no subject in token response")
+	finalClaims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims after validation")
 	}
 
-	return verifyResp.Sub, nil
+	return finalClaims, nil
 }
 
 func GetClaims(c *fiber.Ctx) map[string]interface{} {
 	return map[string]interface{}{
-		"user_id": GetUserID(c),
+		"user_id":     GetUserID(c),
+		"user_email":  GetUserEmail(c),
+		"first_name":  GetUserFirstName(c),
+		"last_name":   GetUserLastName(c),
 	}
 }
 
