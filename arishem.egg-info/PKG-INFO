@@ -15,232 +15,118 @@ Requires-Dist: google-generativeai>=0.8.0
 Requires-Dist: litellm>=1.0.0
 Requires-Dist: pytest>=8.0.0
 
-# Arishem — Autonomous AI Security Testing Engine
+# Arishem
 
-Arishem is an agentic AI security testing engine that probes AI systems for vulnerabilities by behaving like an active human penetration tester. 
+<p align="center">
+  <img src="frontend/src/logo.jpeg" alt="Arishem Logo" width="160" height="160" style="border-radius: 12px;" />
+</p>
 
-It reads function signatures and docstrings of exposed functions (prefixed with `arishem_`) statically using AST analysis, formulates adversarial security goals, executes multi-turn probe sessions to bypass safety controls, and automatically compiles detailed findings.
+Arishem is a security testing platform designed to discover prompt injection, jailbreaks, data leakage, and boundary failures in LLM-based applications, agentic workflows, and APIs.
 
----
-
-## 🛠 Features
-
-1. **Static Target Discovery**: Extracts function parameters, type hints, docstrings, and source code statically using AST analysis (never imports or executes the target module during loader step).
-2. **Pluggable Attack Taxonomy**: Fully modular attack configuration registry. Ship with 9 built-in attack classes under `arishem/attack_classes/` which can be extended dynamically.
-3. **Multi-Turn Probing Loop**: Evaluates safety boundaries across a recursive execution cycle (probes, catches crashes, classifies results, and decides whether to continue, pivot, escalate, or close the finding).
-4. **Rich Multi-Format Reporting**:
-   - **Console**: Live progress monitor table and colored finding summaries via `rich`.
-   - **HTML**: Standalone, interactive dark-themed dashboard detailing trace histories, classifications, and remediation.
-   - **SARIF**: CI/CD and editor problems tab integration.
-   - **JSON**: Structured findings list for pipeline integrations.
+The project is organized as a multi-tier system:
+1. **Python Engine (`arishem/`)**: Core CLI and test runner that parses target function signatures via AST, executes multi-turn adversarial red-teaming loops, and judges responses using schema-constrained models.
+2. **Go Backend Server (`backend/`)**: A Fiber API server handling user authentication via Clerk, database storage (PostgreSQL), task scheduling, and background worker queues.
+3. **Vue Frontend (`frontend/`)**: A Vite + TypeScript SPA dashboard providing real-time run logs, reports downloading, alerts configuration, and public documentation.
 
 ---
 
-## 🛡️ Supported Vulnerabilities
+## 🏗 System Architecture
 
-Arishem includes 9 pluggable attack classes out-of-the-box (configured under `arishem/attack_classes/`):
-
-* **Instruction/Goal Hijacking (`goal_hijacking`)**: Overrides system boundaries using jailbreaks, roleplay, suffix injection, or tag manipulation.
-* **Cascading / Runaway Failures (`cascading_failure`)**: Triggers infinite loops, memory leaks, recursive call overflows, or high resource utilization.
-* **Memory / Context Poisoning (`context_poisoning`)**: Injects malicious payloads into history, dynamic database contexts, or system prompt stores.
-* **Insecure Delegation and Message Spoofing (`insecure_delegation`)**: Spoofs agent/assistant identities, forges message headers, and attempts verification bypass.
-* **Persistent Misalignment / Drift (`persistent_drift`)**: Slowly shifts agent behaviors and safety policies over multi-turn interactions.
-* **Privilege and Identity Abuse (`privilege_abuse`)**: Explores privilege escalation boundaries or administrative action execution.
-* **Tool/Function Misuse & Chaining (`tool_misuse`)**: Focuses on malicious argument passing and unintended/harmful chaining of tool invocations.
-* **Human Trust Exploitation (`trust_exploitation`)**: Employs social engineering, authority spoofing, or fake error notifications.
-* **Unsafe Code / Shell Command Execution (`unsafe_execution`)**: Attempts OS shell execution, arbitrary code injection, or sandbox evasion.
-
----
-
-## 🏗 Project Structure
-
-```
-arishem/
-├── arishem/
-│   ├── __init__.py
-│   ├── cli.py              # entrypoint & arguments parser
-│   ├── loader.py           # AST target module signature parser
-│   ├── orchestrator.py     # async orchestrator running parallel probe sessions
-│   ├── probe_session.py    # recursive probing execution loop
-│   ├── llm.py              # schema-constrained JSON API client wrapper (Gemini/OpenAI/Mock)
-│   ├── generator.py        # generates adversarial payloads given history
-│   ├── observer.py         # classifies outputs (blocked, partial, leaked, unexpected, error)
-│   ├── judge.py            # scores findings & generates remediation guidelines
-│   ├── attack_classes/     # pluggable attack configuration directories
-│   │   ├── base.py         # configuration registration and discovery
-│   │   ├── cascading_failure.py
-│   │   ├── context_poisoning.py
-│   │   ├── goal_hijacking.py
-│   │   ├── insecure_delegation.py
-│   │   ├── persistent_drift.py
-│   │   ├── privilege_abuse.py
-│   │   ├── tool_misuse.py
-│   │   ├── trust_exploitation.py
-│   │   └── unsafe_execution.py
-│   ├── models.py           # core dataclasses
-│   ├── store.py            # results save/load serialization
-│   └── reporters/          # reporting formats
-│       ├── console.py
-│       ├── html.py
-│       └── sarif.py
-├── tests/                  # full test suite (pytest)
-├── target_example.py       # example target under test
-├── arishem.config.toml     # default engine configuration
-└── pyproject.toml          # metadata and dependency configuration
+```mermaid
+graph TD
+    UI[Vue Frontend SPA] -->|HTTP / JSON| API[Go Fiber Backend]
+    API -->|Read/Write| DB[(PostgreSQL)]
+    API -->|Read/Write| S3[(S3 Report Bucket)]
+    API -->|Queue Tasks| WP[Worker Pool]
+    WP -->|Execute| CLI[Python Engine CLI]
+    CLI -->|Dynamic Probing| Target[Target AI Service]
 ```
 
----
+### 1. Concurrency & Queue Worker Pool
+To prevent system resource exhaustion, the Go backend manages background tasks through a concurrent queue worker pool:
+* **Global Concurrency**: A maximum of **4 concurrent workers** run globally across the host system.
+* **Per-Organization Limits**: Each user organization is restricted to **2 concurrent active runs**. Additional scans are re-queued to maintain fair resource availability.
+* **Daily Rate Limiting**: The system enforces a daily limit on runs per organization, controlled by the `MAX_RUNS_PER_DAY` environment variable (defaults to 10). If the limit is exceeded, run creation requests are rejected with a `429 Too Many Requests` status.
+* **Context-Based Cancellation**: Scans and LLM pentests can be aborted at any time. When cancelled, the backend terminates the underlying shell process instantly and cleans up the test container environment.
 
-## ⚙️ Configuration (`arishem.config.toml`)
-
-Create a configuration file in the project folder to set model defaults.
-
-```toml
-[llm]
-# Set provider to "gemini", "openai", or "mock"
-provider = "gemini"
-model = "gemini-2.5-flash"
-# Optionally override base url / key (otherwise, GEMINI_API_KEY/OPENAI_API_KEY is read from environment)
-# api_key = "..."
-# api_base = "..."
-
-[engine]
-default_budget = 8
-default_concurrency = 4
-default_mode = "both"
-# Optional RPM (Requests Per Minute) rate limiting for LLM requests (e.g. 60)
-# rate_limit_rpm = 60
-
-```
+### 2. Isolated Container Sandboxing
+Adversarial test scripts can be executed inside containerized environments to prevent arbitrary code execution on the host:
+* When Docker mode is enabled, the backend spawns a sandboxed `python:3.11-slim` container.
+* **Unprivileged Non-Root Execution**: Containers execute using the dynamically-detected UID and GID of the host's backend process (`--user uid:gid`). This restricts filesystem permissions and blocks privilege escalations.
+* **Write Isolation**: A writable Python user-base base-path (`/tmp/arishem/user-base`) is mounted dynamically so that dependencies (`requirements.txt`) are installed via `pip install --user` without needing root write privileges inside the container.
+* **Forced Containerization**: Setting the environment variable `EXPECTS_UNSAFE_CODE=true` forces all job executions (both static code scans and LLM pentests) to run inside Docker containers, overriding user selections.
 
 ---
 
-## 🚀 CLI Usage
+## 🛡️ Supported Attack Classes
 
-### List Registered Attack Classes
+Arishem includes 9 built-in attack classes designed to red-team AI targets:
+* **Goal Hijacking (`goal_hijacking`)**: Attempts jailbreaks, roleplay, suffix injection, or instruction overrides.
+* **Cascading Failure (`cascading_failure`)**: Probes for infinite loops, memory leaks, or unhandled exceptions.
+* **Context Poisoning (`context_poisoning`)**: Attempts context-window payload injection or history poisoning.
+* **Insecure Delegation (`insecure_delegation`)**: Tests identity spoofing and unauthorized message delegation.
+* **Persistent Drift (`persistent_drift`)**: Attempts behavioural deviation over multi-turn interactions.
+* **Privilege Abuse (`privilege_abuse`)**: Evaluates administrative privilege boundary escalation.
+* **Tool Misuse (`tool_misuse`)**: Evaluates argument injection and dangerous tool chaining.
+* **Trust Exploitation (`trust_exploitation`)**: Probes for vulnerability to social engineering or authority spoofing.
+* **Unsafe Execution (`unsafe_execution`)**: Attempts shell code execution or sandbox escape.
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+* **Python**: `python3.10` or higher
+* **Go**: `go1.20` or higher (for the API backend)
+* **Docker**: Required if running tests in containerized sandbox mode
+* **PostgreSQL & Redis**: Backend database and queue broker dependencies
+
+### Host Installation
+Clone the repository and install the Python CLI package locally:
 ```bash
-python3 -m arishem.cli list-classes
+pip install -e .
 ```
 
-### Run Active Probing Penetration Test
-Run tests against exposed `arishem_` target functions and save a report.
+---
+
+## 💻 CLI Usage
+
+### Register Target Functions
+Targets must expose python functions prefixed with `arishem_` (e.g. `arishem_chat(prompt: str) -> str`).
+
+*💡 **Tip**: You can use function docstrings to pass custom testing instructions or specification details directly to the red-teaming LLM generator. Arishem statically extracts these docstrings and injects them into the attack prompts to formulate more targeted test payloads.*
+
+### Run Pentest directly via CLI
 ```bash
-# Saves an HTML report containing trace evidence
-python3 -m arishem.cli run target_example.py --output report.html
-
-# Run specific classes and modes
-python3 -m arishem.cli run target_example.py --classes goal_hijacking,tool_misuse --mode whitebox --concurrency 4
+python3 -m arishem.cli run target_example.py --output results.json
 ```
 
-### Generate Reports from Saved JSON Results
+### Convert JSON results to HTML or SARIF
 ```bash
-# Generate SARIF report
-python3 -m arishem.cli report results.json --format sarif --output report.sarif --target-src target_example.py
-
-# Print console summary
-python3 -m arishem.cli report results.json --format console
+python3 -m arishem.cli report results.json --format html --output report.html
 ```
 
 ---
 
-## 🔌 Programmatic Embedding
+## 🌐 Full-Stack Deployment (Docker Compose)
 
-You can embed Arishem inside a larger agent framework as a tool call:
+Deploy the entire stack (PostgreSQL, Redis, MinIO S3, Go Backend) using the root configuration:
 
-```python
-import asyncio
-from arishem import run_arishem
+1. **Setup Env Variables**:
+   Copy `.env.example` to `.env` and fill in your values (including Clerk auth keys):
+   ```bash
+   cp .env.example .env
+   ```
 
-async def test_agent():
-    # Programmatic entrypoint returning structured Finding objects
-    result = await run_arishem(
-        target_path="target_example.py",
-        mode="both",
-        classes=["goal_hijacking"],
-        concurrency=4
-    )
-    
-    for finding in result.findings:
-        print(f"[{finding.severity.upper()}] {finding.title} in {finding.function_targeted}")
-        print(f"Remediation: {finding.remediation}")
+2. **Start Services**:
+   ```bash
+   docker compose up --build -d
+   ```
 
-asyncio.run(test_agent())
-```
-
----
-
-## 💬 Testing Stateful / WebSocket Interfaces
-
-### How Multi-Turn Probing Works
-During execution, the Arishem loop runs target functions statically prefixed with `arishem_` (e.g., `arishem_chat(user_message: str)`). 
-* Every turn inside a session is executed as an **independent, stateless function call** (`func_callable(**probe_kwargs)`).
-* The historical context is maintained on the **agent generator side** (passed inside the LLM prompt history), rather than in the network connection itself.
-
-### Connecting to Stateful or WebSocket Backends
-If the target system under test requires connection persistence (like a WebSocket channel or sticky session cookies), the target function must handle connection setup, payload wrapping, and teardown.
-
-#### Option A: Sticky Session Tracking (Stateful WebSocket per Turn)
-If the server maintains multi-turn state via a session key, design your target function to attach this key on every turn:
-
-```python
-import websockets
-import asyncio
-import json
-
-SESSION_ID = "adversarial-session-999"
-
-async def arishem_chat(user_message: str) -> str:
-    """
-    Stateful WebSocket invocation.
-    """
-    async with websockets.connect("ws://localhost:8000/chat") as ws:
-        payload = {
-            "session_id": SESSION_ID,
-            "message": user_message
-        }
-        await ws.send(json.dumps(payload))
-        response = await ws.recv()
-        return json.loads(response).get("response", "")
-```
-
-#### Option B: Connection Caching (Reusing Sockets across Turns)
-To keep a single persistent connection open across the entire test session instead of reconnecting each turn, you can store a global connection reference at the module level of your target file:
-
-```python
-import websockets
-import asyncio
-import json
-
-_ws_connection = None
-
-async def _get_ws():
-    global _ws_connection
-    if _ws_connection is None or _ws_connection.closed:
-        _ws_connection = await websockets.connect("ws://localhost:8000/chat")
-    return _ws_connection
-
-async def arishem_chat(user_message: str) -> str:
-    """
-    WebSocket chat reusing the same persistent connection socket.
-    """
-    try:
-        ws = await _get_ws()
-        await ws.send(json.dumps({"message": user_message}))
-        res = await ws.recv()
-        return json.loads(res).get("response", "")
-    except Exception as e:
-        return f"WebSocket Error: {e}"
-```
-
----
-
-## 📦 Local Imports and Module Paths
-
-### Dynamic Import Mechanism
-When running Arishem, the target module specified by the target path is dynamically imported under a unique, runtime-generated package name to prevent namespace conflicts during parallel processing.
-
-### Resolving Local and Relative Imports
-Arishem's loader natively configures the import environment to support standard import behaviors:
-* **Local Absolute Imports** (e.g., `import helper`): The directory containing your target file is automatically appended to `sys.path` during execution. You do not need to manually configure `PYTHONPATH` for adjacent modules.
-* **Relative Imports** (e.g., `from . import helper`): The dynamically loaded module is treated as a package at runtime (with its `__path__` and `__package__` set correctly), enabling standard relative import structures within the target file.
-```
+3. **Frontend SPA compilation**:
+   Compile Vite assets and deploy to static hosting (Netlify, Vercel, or Cloudflare Pages):
+   ```bash
+   cd frontend
+   npm install
+   npm run build
+   ```

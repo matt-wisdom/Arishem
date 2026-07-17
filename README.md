@@ -8,7 +8,7 @@ Arishem is a security testing platform designed to discover prompt injection, ja
 
 The project is organized as a multi-tier system:
 1. **Python Engine (`arishem/`)**: Core CLI and test runner that parses target function signatures via AST, executes multi-turn adversarial red-teaming loops, and judges responses using schema-constrained models.
-2. **Go Backend Server (`backend/`)**: A Fiber API server handling user authentication via Clerk, database storage (PostgreSQL), task scheduling, and background worker queues.
+2. **Go Backend Server (`backend/`)**: A Fiber API server handling user authentication via Clerk, database storage (SQLite3), task scheduling, and background worker queues.
 3. **Vue Frontend (`frontend/`)**: A Vite + TypeScript SPA dashboard providing real-time run logs, reports downloading, alerts configuration, and public documentation.
 
 ---
@@ -18,7 +18,7 @@ The project is organized as a multi-tier system:
 ```mermaid
 graph TD
     UI[Vue Frontend SPA] -->|HTTP / JSON| API[Go Fiber Backend]
-    API -->|Read/Write| DB[(PostgreSQL)]
+    API -->|Read/Write| DB[(SQLite3)]
     API -->|Read/Write| S3[(S3 Report Bucket)]
     API -->|Queue Tasks| WP[Worker Pool]
     WP -->|Execute| CLI[Python Engine CLI]
@@ -38,6 +38,15 @@ Adversarial test scripts can be executed inside containerized environments to pr
 * **Unprivileged Non-Root Execution**: Containers execute using the dynamically-detected UID and GID of the host's backend process (`--user uid:gid`). This restricts filesystem permissions and blocks privilege escalations.
 * **Write Isolation**: A writable Python user-base base-path (`/tmp/arishem/user-base`) is mounted dynamically so that dependencies (`requirements.txt`) are installed via `pip install --user` without needing root write privileges inside the container.
 * **Forced Containerization**: Setting the environment variable `EXPECTS_UNSAFE_CODE=true` forces all job executions (both static code scans and LLM pentests) to run inside Docker containers, overriding user selections.
+
+### 3. Multi-Agent Collaborative Red-Teaming
+Arishem splits pentest execution into a collaborative team of specialized LLM subagents:
+* **The Scout Agent (Static Profiler)**: Profiles the target script's source code, parameters, docstrings, and type signature prior to the first execution turn, generating three specific vulnerability hypotheses or attack paths.
+* **The Attacker Agent (Payload Generator)**: Incorporates the Scout's vulnerability hypotheses to generate highly context-aware prompt injection payloads and API arguments.
+* **The Auditor Agent (Observer)**: Monitors execution feedback at every turn to semantically classify responses against the adversarial goals.
+
+### 4. Cross-Run Memory & Historical Knowledge Transfer
+When running subsequent versions of a test target (e.g. following code patches or test runs), Arishem queries the database for the results and logs of the **previous version**. It extracts the previous run's status, logs snippet, and findings, injecting them as `HISTORICAL MEMORY` into the Attacker's prompting context. This prevents the scanner from wasting tokens on safety-blocked paths and encourages it to pivot or escalate existing vulnerabilities.
 
 ---
 

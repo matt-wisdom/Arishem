@@ -199,6 +199,33 @@ const copyToClipboard = async (text: string, id: string) => {
             </div>
           </section>
 
+          <section class="docs-section">
+            <h2>🧠 Advanced Engine Intelligence</h2>
+            <p>
+              Arishem utilizes state-of-the-art cognitive modeling to optimize adversarial generation and audit safety boundaries dynamically:
+            </p>
+            <div class="deploy-grid" style="margin-top: 15px;">
+              <div class="deploy-card">
+                <h3>👥 Multi-Agent Teamwork</h3>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  Pentests are orchestrated by a collaborative squad of LLM agents:
+                </p>
+                <ul style="margin-top: 8px; padding-left: 20px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  <li><strong>Scout Agent (Static Profiler)</strong>: Executed prior to Turn 1. Analyzes code syntax and docstrings to propose 3 vulnerability hypotheses or logical hotspots.</li>
+                  <li><strong>Attacker Agent (Payload Generator)</strong>: Consumes the Scout's report to craft tailored, context-specific prompt injections and overrides.</li>
+                  <li><strong>Auditor Agent (Observer)</strong>: Semantically judges the execution response on every turn to classify outputs objectively.</li>
+                </ul>
+              </div>
+              <div class="deploy-card">
+                <h3>🔄 Cross-Run Historical Memory</h3>
+                <p style="margin-top: 8px; font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+                  When testing subsequent versions of a script, Arishem queries the SQLite3 database to locate findings and log snippets of the **previous version**. 
+                  It injects these context-details as <code>HISTORICAL MEMORY</code> in the Attacker's prompting instructions, preventing repetitive safety blocks and directing attacks to unresolved vulnerabilities.
+                </p>
+              </div>
+            </div>
+          </section>
+
           <section id="security" class="docs-section">
             <h2>🛡️ Security & Sandbox Isolation</h2>
             <p>
