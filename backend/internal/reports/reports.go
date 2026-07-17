@@ -18,9 +18,12 @@ var bucketName string
 func InitS3() error {
 	endpoint := strings.TrimSpace(os.Getenv("S3_ENDPOINT"))
 	if endpoint == "" {
-		log.Println("S3 not configured - skipping initialization")
+		log.Println("S3 not configured: S3_ENDPOINT not set, skipping S3 initialization")
 		return nil
 	}
+
+	log.Printf("S3 initialization: endpoint=%s, bucket=%s, useSSL=%s", 
+		endpoint, os.Getenv("S3_BUCKET"), os.Getenv("S3_USE_SSL"))
 
 	// Strip inline comments starting with '#'
 	if idx := strings.Index(endpoint, "#"); idx != -1 {

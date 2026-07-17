@@ -63,6 +63,8 @@ func main() {
 
 	if err := reports.InitS3(); err != nil {
 		slog.Error("Failed to initialize S3", slog.Any("error", err))
+	} else {
+		slog.Info("S3 storage initialized successfully")
 	}
 
 	// Start background worker pool for jobs
