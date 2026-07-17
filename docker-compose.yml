@@ -8,7 +8,6 @@ services:
       - "443:443"
     volumes:
       - ./caddy/Caddyfile:/etc/caddy/Caddyfile
-      - ./frontend/dist:/srv/frontend
       - caddy_data:/data
       - caddy_config:/config
     depends_on:
@@ -53,7 +52,6 @@ services:
       - ./backend/data:/var/lib/arishem
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/arishem:/tmp/arishem
-      - /mnt/C6EE65A1EE658B0F/WORKEST/Arishem:/app
     depends_on:
       minio:
         condition: service_healthy

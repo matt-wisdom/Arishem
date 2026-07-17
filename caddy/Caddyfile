@@ -1,13 +1,4 @@
-arishem.site {
-    # Serve static frontend files
-    root * /srv/frontend
-    file_server
-
-    # Handle client-side routing fallback (for SPA router)
-    try_files {path} /index.html
-
-    # Proxy API calls to Go backend
-    handle /api/* {
-        reverse_proxy backend:8080
-    }
+api.arishem.site {
+    # Proxy all API traffic to Go backend
+    reverse_proxy backend:8080
 }
