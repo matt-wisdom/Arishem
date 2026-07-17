@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router'
 
+defineProps<{
+  isOpen?: boolean
+}>()
+
+const emit = defineEmits<{
+  close: []
+}>()
+
 const route = useRoute()
 const router = useRouter()
 
@@ -18,11 +26,21 @@ const isActive = (path: string) => {
   if (path === '/') return route.path === '/'
   return route.path.startsWith(path)
 }
+
+const navigate = (path: string) => {
+  router.push(path)
+  emit('close')
+}
 </script>
 
 <template>
   <aside class="sidebar">
-    <div class="logo" @click="router.push('/')">
+    <button class="close-btn" @click="emit('close')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12" />
+      </svg>
+    </button>
+    <div class="logo" @click="navigate('/')">
       <img src="@/logo.jpeg" alt="Arishem Logo" class="logo-img" />
       <span class="logo-text">Arishem</span>
     </div>
@@ -34,7 +52,7 @@ const isActive = (path: string) => {
         :href="item.path"
         class="nav-item"
         :class="{ active: isActive(item.path) }"
-        @click.prevent="router.push(item.path)"
+        @click.prevent="navigate(item.path)"
       >
         <span class="nav-icon">
           <svg v-if="item.icon === 'dashboard'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -190,5 +208,35 @@ const isActive = (path: string) => {
   font-family: 'Share Tech Mono', monospace;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+.close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.close-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+@media (max-width: 1024px) {
+  .close-btn {
+    display: flex;
+  }
 }
 </style>

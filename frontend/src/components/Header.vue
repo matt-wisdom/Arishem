@@ -448,4 +448,16 @@ onMounted(() => {
   font-size: 11px;
   color: var(--text-muted);
 }
+
+@media (max-width: 1024px) {
+  .org-switcher {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .search-btn {
+    display: none;
+  }
+}
 </style>

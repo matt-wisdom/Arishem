@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, ref } from 'vue'
 import Sidebar from './components/Sidebar.vue'
 import AppHeader from './components/Header.vue'
 import { SignedIn, SignedOut, useAuth } from '@clerk/vue'
@@ -8,6 +8,7 @@ import { useRoute, useRouter } from 'vue-router'
 const route = useRoute()
 const router = useRouter()
 const { isSignedIn, isLoaded } = useAuth()
+const sidebarOpen = ref(false)
 
 watch(
   [() => route.path, isSignedIn, isLoaded],
@@ -20,12 +21,26 @@ watch(
   },
   { immediate: true }
 )
+
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+
+const closeSidebar = () => {
+  sidebarOpen.value = false
+}
 </script>
 
 <template>
   <div class="app-container">
     <SignedIn>
-      <Sidebar />
+      <button class="mobile-menu-btn" @click="toggleSidebar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M3 12h18M3 6h18M3 18h18" />
+        </svg>
+      </button>
+      <div class="sidebar-overlay" :class="{ active: sidebarOpen }" @click="closeSidebar"></div>
+      <Sidebar :class="{ open: sidebarOpen }" @close="closeSidebar" />
       <div class="main-content">
         <AppHeader />
         <main class="content">
@@ -392,5 +407,136 @@ button:active {
 .tooltip-container:hover .tooltip-bubble {
   visibility: visible;
   opacity: 1;
+}
+
+/* Mobile Menu Button */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 200;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  color: var(--accent);
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 10px var(--accent-glow);
+}
+
+.mobile-menu-btn svg {
+  width: 24px;
+  height: 24px;
+}
+
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar-overlay.active {
+  opacity: 1;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .main-content {
+    margin-left: 0;
+    padding-top: 60px;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease;
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .content {
+    padding: 16px;
+  }
+
+  .header {
+    padding: 12px 16px;
+    padding-left: 60px;
+  }
+
+  .page-title {
+    font-size: 16px;
+  }
+
+  .org-switcher .org-name,
+  .user-menu .user-name {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 12px;
+  }
+
+  .header-right {
+    gap: 8px;
+  }
+
+  .org-switcher {
+    display: none;
+  }
+
+  .notifications-dropdown {
+    width: 280px;
+    right: -40px;
+  }
+
+  .public-header {
+    padding: 12px 16px;
+  }
+
+  .sign-in-nav-btn {
+    font-size: 10px;
+    padding: 6px 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 8px;
+  }
+
+  .header {
+    padding: 10px 12px;
+    padding-left: 56px;
+  }
+
+  .search-btn {
+    display: none;
+  }
+
+  .user-menu {
+    padding: 4px;
+  }
+
+  .user-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 12px;
+  }
 }
 </style>
