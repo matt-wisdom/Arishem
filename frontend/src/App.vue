@@ -319,4 +319,78 @@ button:active {
   color: var(--bg-primary);
   box-shadow: 0 0 10px var(--accent-glow);
 }
+
+/* Tooltip styling */
+.tooltip-container {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  cursor: pointer;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.tooltip-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background: var(--border-color);
+  border: 1px solid var(--text-muted);
+  color: var(--text-primary);
+  border-radius: 50% !important;
+  font-size: 10px;
+  font-weight: bold;
+  font-family: monospace;
+  transition: all 0.2s ease;
+}
+
+.tooltip-icon:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg-primary);
+  box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.tooltip-bubble {
+  visibility: hidden;
+  position: absolute;
+  bottom: 135%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(8, 8, 22, 0.98);
+  color: var(--text-primary);
+  text-align: center;
+  padding: 8px 12px;
+  border: 1px solid var(--accent);
+  border-radius: 0;
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  width: 220px;
+  z-index: 9999;
+  opacity: 0;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  box-shadow: 0 0 10px rgba(0, 255, 204, 0.2);
+  pointer-events: none;
+}
+
+/* Tooltip arrow */
+.tooltip-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--accent) transparent transparent transparent;
+}
+
+.tooltip-container:hover .tooltip-bubble {
+  visibility: visible;
+  opacity: 1;
+}
 </style>
