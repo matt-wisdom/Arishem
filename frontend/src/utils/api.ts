@@ -5,9 +5,12 @@ export const apiUrl = (path: string) => {
   return `${API_BASE}${cleanPath}`
 }
 
+let isHandling401 = false
+
 const handleUnauthorized = () => {
-  const clerk = (window as any).__clerk__
-  
+  if (isHandling401) return
+  isHandling401 = true
+
   localStorage.clear()
   sessionStorage.clear()
   
@@ -19,19 +22,25 @@ const handleUnauthorized = () => {
     }
   }
 
+  const clerk = (window as any).__clerk__
   if (clerk?.signOut) {
-    clerk.signOut()
+    clerk.signOut().then(() => {
+      window.location.href = '/sign-in'
+    })
+  } else {
+    window.location.href = '/sign-in'
   }
-  
-  window.location.href = '/sign-in'
 }
 
 export const apiFetch = async (url: string, options: RequestInit = {}): Promise<Response> => {
+  if (!options.headers) {
+    options.headers = {}
+  }
+  
   const res = await fetch(url, options)
 
   if (res.status === 401) {
     handleUnauthorized()
-    throw new Error('Unauthorized')
   }
 
   return res
