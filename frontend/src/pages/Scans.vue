@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { storeToRefs } from 'pinia'
 import { useScansStore } from '../stores/scans'
 import { useAuth } from '@clerk/vue'
-import { apiUrl } from '@/utils/api'
+import { apiUrl, apiFetch } from '@/utils/api'
 
 const router = useRouter()
 const scansStore = useScansStore()
@@ -24,7 +24,7 @@ const fetchFindingsCount = async (id: string) => {
   try {
     const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
     const token = (await (tokenFn as any)()) || localStorage.getItem('token') || ''
-    const res = await fetch(apiUrl(`/scans/${id}`), {
+    const res = await apiFetch(apiUrl(`/scans/${id}`), {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     if (res.ok) {

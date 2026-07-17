@@ -2,7 +2,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useUser, useClerk, useOrganization, useAuth } from '@clerk/vue'
 import { useRoute, useRouter } from 'vue-router'
-import { apiUrl } from '@/utils/api'
+import { apiUrl, apiFetch } from '@/utils/api'
 
 const { user } = useUser()
 const clerk = useClerk()
@@ -53,8 +53,8 @@ const loadNotifications = async () => {
   try {
     const headers = await getHeaders()
     const [runsRes, scansRes] = await Promise.all([
-      fetch(apiUrl('/llmpentest'), { headers }),
-      fetch(apiUrl('/scans'), { headers })
+      apiFetch(apiUrl('/llmpentest'), { headers }),
+      apiFetch(apiUrl('/scans'), { headers })
     ])
     
     let list: any[] = []
