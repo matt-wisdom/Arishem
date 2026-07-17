@@ -27,55 +27,55 @@ def generate_sarif_report(result: ArishemRunResult, filepath: str, target_filepa
                                 "id": "ARI-GOAL-HIJACK",
                                 "name": "goal_hijacking",
                                 "shortDescription": {"text": "AI Prompt Injection and Goal Hijacking"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-TOOL-MISUSE",
                                 "name": "tool_misuse",
                                 "shortDescription": {"text": "Agent Tool Chain Abuse and Misuse"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-PRIV-ESC",
                                 "name": "privilege_abuse",
                                 "shortDescription": {"text": "Privilege and Scope Escalation"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-UNSAFE-EXEC",
                                 "name": "unsafe_execution",
                                 "shortDescription": {"text": "Adversarial Code or Shell Command Execution"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-CTX-POISON",
                                 "name": "context_poisoning",
                                 "shortDescription": {"text": "Context or History poisoning"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-INSEC-DELEG",
                                 "name": "insecure_delegation",
                                 "shortDescription": {"text": "Insecure agent-to-agent delegation"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-CASC-FAIL",
                                 "name": "cascading_failure",
                                 "shortDescription": {"text": "Uncontained cascading system failure"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-TRUST-EXPL",
                                 "name": "trust_exploitation",
                                 "shortDescription": {"text": "Human Trust Exploitation via Urgency"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             },
                             {
                                 "id": "ARI-PERS-DRIFT",
                                 "name": "persistent_drift",
                                 "shortDescription": {"text": "Persistent agent misalignment and drift"},
-                                "helpUri": "https://github.com/google-deepmind/arishem"
+                                "helpUri": "https://arishem.site/docs"
                             }
                         ]
                     }

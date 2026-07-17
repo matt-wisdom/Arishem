@@ -50,7 +50,7 @@ const closeSidebar = () => {
           <div class="footer-content">
             <span class="footer-brand">Arishem</span>
             <span class="footer-version">v1.0.0</span>
-            <span class="footer-copy">&copy; {{ new Date().getFullYear() }} Security Testing Platform</span>
+            <span class="footer-copy">&copy; {{ new Date().getFullYear() }} </span>
           </div>
         </footer>
       </div>
@@ -72,7 +72,7 @@ const closeSidebar = () => {
           <div class="footer-content">
             <span class="footer-brand">Arishem</span>
             <span class="footer-version">v1.0.0</span>
-            <span class="footer-copy">&copy; {{ new Date().getFullYear() }} Security Testing Platform</span>
+            <span class="footer-copy">&copy; {{ new Date().getFullYear() }}</span>
           </div>
         </footer>
       </div>

@@ -251,6 +251,76 @@ const copyToClipboard = async (text: string, id: string) => {
               </div>
             </div>
           </section>
+
+          <section id="sarif-rules" class="docs-section">
+            <h2>📋 SARIF Report Rules</h2>
+            <p>
+              Arishem generates SARIF (Static Analysis Results Interchange Format) reports that integrate with CI/CD pipelines and security tools. Each finding is categorized by a specific rule ID that maps to the attack class tested.
+            </p>
+            
+            <div class="sarif-section">
+              <table class="sarif-rules-table">
+                <thead>
+                  <tr>
+                    <th>Rule ID</th>
+                    <th>Attack Class</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-GOAL-HIJACK</span></td>
+                    <td>Goal Hijacking</td>
+                    <td>AI Prompt Injection and Goal Hijacking - Tests for jailbreaks, roleplay, suffix injection, or instruction overrides</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-TOOL-MISUSE</span></td>
+                    <td>Tool Misuse</td>
+                    <td>Agent Tool Chain Abuse and Misuse - Evaluates argument injection and dangerous tool chaining</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-PRIV-ESC</span></td>
+                    <td>Privilege Abuse</td>
+                    <td>Privilege and Scope Escalation - Evaluates administrative privilege boundary escalation</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-UNSAFE-EXEC</span></td>
+                    <td>Unsafe Execution</td>
+                    <td>Adversarial Code or Shell Command Execution - Attempts shell code execution or sandbox escape</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-CTX-POISON</span></td>
+                    <td>Context Poisoning</td>
+                    <td>Context or History poisoning - Attempts context-window payload injection or history poisoning</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-INSEC-DELEG</span></td>
+                    <td>Insecure Delegation</td>
+                    <td>Insecure agent-to-agent delegation - Tests identity spoofing and unauthorized message delegation</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-CASC-FAIL</span></td>
+                    <td>Cascading Failure</td>
+                    <td>Uncontained cascading system failure - Probes for infinite loops, memory leaks, or unhandled exceptions</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-TRUST-EXPL</span></td>
+                    <td>Trust Exploitation</td>
+                    <td>Trust Exploitation / Social Engineering - Probes for vulnerability to social engineering or authority spoofing</td>
+                  </tr>
+                  <tr>
+                    <td><span class="sarif-rule-id">ARI-PERS-DRIFT</span></td>
+                    <td>Persistent Drift</td>
+                    <td>Behavioural Drift - Attempts behavioural deviation over multi-turn interactions</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <p style="margin-top: 16px; font-size: 13px; color: var(--text-muted);">
+              More details about each attack class can be found at: <strong style="color: var(--accent);">https://arishem.site/docs</strong>
+            </p>
+          </section>
         </div>
 
         <!-- Sidebar panel with LLM Prompt Generation context -->
@@ -582,5 +652,53 @@ const copyToClipboard = async (text: string, id: string) => {
   object-fit: cover;
   border: 1px solid var(--accent);
   box-shadow: 0 0 6px var(--accent-glow);
+}
+
+.sarif-section {
+  margin-top: 32px;
+  padding: 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+}
+
+.sarif-section h2 {
+  color: var(--accent);
+  font-size: 18px;
+  margin-bottom: 16px;
+}
+
+.sarif-rules-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+  font-size: 13px;
+}
+
+.sarif-rules-table th,
+.sarif-rules-table td {
+  padding: 10px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.sarif-rules-table th {
+  background: rgba(0, 255, 204, 0.05);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.sarif-rules-table td {
+  color: var(--text-secondary);
+}
+
+.sarif-rules-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sarif-rule-id {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--accent-pink);
+  font-size: 12px;
 }
 </style>
