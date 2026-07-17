@@ -53,6 +53,7 @@ services:
       - ARISHEM_HOST_PATH=${ARISHEM_HOST_PATH}
     volumes:
       - ./backend/data:/var/lib/arishem
+      - .:/tmp/arishem/arishem-source:ro
       - /var/run/docker.sock:/var/run/docker.sock
       - /tmp/arishem:/tmp/arishem
     logging:
