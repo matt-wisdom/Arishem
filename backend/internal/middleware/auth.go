@@ -3,19 +3,20 @@ package middleware
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-type ClerkUserInfo struct {
-	ID      string `json:"id"`
-	Email   string `json:"email"`
-	FirstName string `json:"first_name"`
-	LastName  string `json:"last_name"`
+type ClerkVerifyResponse struct {
+	Sub string `json:"sub"`
 }
+
+var clerkHTTPClient = &http.Client{Timeout: 15 * time.Second}
 
 func AuthMiddleware(c *fiber.Ctx) error {
 	authHeader := c.Get("Authorization")
@@ -35,53 +36,57 @@ func AuthMiddleware(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "server configuration error"})
 	}
 
-	userInfo, err := validateClerkToken(secretKey, tokenString)
+	userID, err := validateClerkToken(secretKey, tokenString)
 	if err != nil {
+		fmt.Printf("Clerk auth error: %v\n", err)
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{"error": "invalid token: " + err.Error()})
 	}
 
-	c.Locals("user_id", userInfo.ID)
-	c.Locals("user_email", userInfo.Email)
-	c.Locals("user_first_name", userInfo.FirstName)
-	c.Locals("user_last_name", userInfo.LastName)
+	c.Locals("user_id", userID)
 
 	return c.Next()
 }
 
-func validateClerkToken(secretKey, token string) (*ClerkUserInfo, error) {
-	req, err := http.NewRequest("GET", "https://api.clerk.com/v1/me", nil)
+func validateClerkToken(secretKey, token string) (string, error) {
+	req, err := http.NewRequest("GET", "https://api.clerk.com/v1/tokens/verify", nil)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create request: %w", err)
+		return "", fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("Authorization", "Bearer "+token)
+	q := req.URL.Query()
+	q.Add("token", token)
+	req.URL.RawQuery = q.Encode()
+
+	req.Header.Set("Authorization", "Bearer "+secretKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := clerkHTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate token: %w", err)
+		return "", fmt.Errorf("failed to validate token: %w", err)
 	}
 	defer resp.Body.Close()
 
+	body, _ := io.ReadAll(resp.Body)
+
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("token validation failed with status: %d", resp.StatusCode)
+		return "", fmt.Errorf("token validation failed with status: %d, body: %s", resp.StatusCode, string(body))
 	}
 
-	var userInfo ClerkUserInfo
-	if err := json.NewDecoder(resp.Body).Decode(&userInfo); err != nil {
-		return nil, fmt.Errorf("failed to decode user info: %w", err)
+	var verifyResp ClerkVerifyResponse
+	if err := json.Unmarshal(body, &verifyResp); err != nil {
+		return "", fmt.Errorf("failed to decode verify response: %w", err)
 	}
 
-	return &userInfo, nil
+	if verifyResp.Sub == "" {
+		return "", fmt.Errorf("no subject in token response")
+	}
+
+	return verifyResp.Sub, nil
 }
 
 func GetClaims(c *fiber.Ctx) map[string]interface{} {
 	return map[string]interface{}{
-		"user_id":     GetUserID(c),
-		"user_email":  GetUserEmail(c),
-		"first_name":  GetUserFirstName(c),
-		"last_name":   GetUserLastName(c),
+		"user_id": GetUserID(c),
 	}
 }
 

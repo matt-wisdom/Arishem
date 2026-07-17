@@ -141,15 +141,9 @@ func TestGetClaims(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
 		c.Locals("user_id", "user_123")
-		c.Locals("user_email", "test@example.com")
-		c.Locals("user_first_name", "John")
-		c.Locals("user_last_name", "Doe")
 		claims := GetClaims(c)
 		if claims["user_id"] != "user_123" {
 			t.Errorf("expected user_id to be user_123, got %v", claims["user_id"])
-		}
-		if claims["user_email"] != "test@example.com" {
-			t.Errorf("expected user_email to be test@example.com, got %v", claims["user_email"])
 		}
 		return c.SendStatus(200)
 	})

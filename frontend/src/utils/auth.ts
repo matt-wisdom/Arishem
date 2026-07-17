@@ -5,7 +5,7 @@ export const useApiHeaders = () => {
 
   const getHeaders = async () => {
     const tokenFn = typeof getToken.value === 'function' ? getToken.value : getToken
-    const token = (await (tokenFn as any)({ template: 'arishem-backend' })) || localStorage.getItem('token') || ''
+    const token = await (tokenFn as any)()
     return { 
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json'
