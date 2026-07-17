@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
 
@@ -88,17 +87,10 @@ func TestRequireRoleDeniesViewer(t *testing.T) {
 	}
 }
 
-
-
-// Let's rewrite the above test cleanly with individual apps to avoid route interference.
-
-func TestTenantMiddleware_DirectClaims(t *testing.T) {
+func TestTenantMiddleware_WithUserID(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("claims", jwt.MapClaims{
-			"org_id": "org_abc",
-			"role":   "org:admin",
-		})
+		c.Locals("user_id", "user_abc123")
 		return c.Next()
 	})
 	app.Use(TenantMiddleware)
@@ -128,51 +120,8 @@ func TestTenantMiddleware_DirectClaims(t *testing.T) {
 	}
 }
 
-func TestTenantMiddleware_OrgsMapClaims(t *testing.T) {
+func TestTenantMiddleware_NoUserID(t *testing.T) {
 	app := fiber.New()
-	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("claims", jwt.MapClaims{
-			"orgs": map[string]interface{}{
-				"org_xyz": map[string]interface{}{
-					"role": "org:engineer",
-				},
-			},
-		})
-		return c.Next()
-	})
-	app.Use(TenantMiddleware)
-	app.Get("/test", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{
-			"org_id": GetOrgID(c),
-			"role":   GetRole(c),
-		})
-	})
-
-	req := httptest.NewRequest("GET", "/test", nil)
-	resp, err := app.Test(req)
-	if err != nil {
-		t.Fatalf("unexpected error: %v", err)
-	}
-	if resp.StatusCode != 200 {
-		t.Errorf("expected status 200, got %d", resp.StatusCode)
-	}
-
-	var res map[string]string
-	json.NewDecoder(resp.Body).Decode(&res)
-	if _, err := uuid.Parse(res["org_id"]); err != nil {
-		t.Errorf("expected org_id to be a valid UUID, got %s (error: %v)", res["org_id"], err)
-	}
-	if res["role"] != "org:engineer" {
-		t.Errorf("expected role org:engineer, got %s", res["role"])
-	}
-}
-
-func TestTenantMiddlewareNoOrgReturns403(t *testing.T) {
-	app := fiber.New()
-	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("claims", jwt.MapClaims{})
-		return c.Next()
-	})
 	app.Use(TenantMiddleware)
 	app.Get("/test", func(c *fiber.Ctx) error {
 		return c.SendStatus(200)
@@ -191,10 +140,16 @@ func TestTenantMiddlewareNoOrgReturns403(t *testing.T) {
 func TestGetClaims(t *testing.T) {
 	app := fiber.New()
 	app.Use(func(c *fiber.Ctx) error {
-		c.Locals("claims", jwt.MapClaims{"foo": "bar"})
+		c.Locals("user_id", "user_123")
+		c.Locals("user_email", "test@example.com")
+		c.Locals("user_first_name", "John")
+		c.Locals("user_last_name", "Doe")
 		claims := GetClaims(c)
-		if claims["foo"] != "bar" {
-			t.Errorf("expected claim foo to be bar, got %v", claims["foo"])
+		if claims["user_id"] != "user_123" {
+			t.Errorf("expected user_id to be user_123, got %v", claims["user_id"])
+		}
+		if claims["user_email"] != "test@example.com" {
+			t.Errorf("expected user_email to be test@example.com, got %v", claims["user_email"])
 		}
 		return c.SendStatus(200)
 	})
