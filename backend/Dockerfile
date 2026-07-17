@@ -13,7 +13,7 @@ RUN CGO_ENABLED=1 GOOS=linux go build -o /server ./cmd/server
 
 FROM alpine:3.19
 
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates docker-cli
 
 WORKDIR /app
 
