@@ -77,6 +77,8 @@ pip install -e .
 ### Register Target Functions
 Targets must expose python functions prefixed with `arishem_` (e.g. `arishem_chat(prompt: str) -> str`).
 
+*💡 **Tip**: You can use function docstrings to pass custom testing instructions or specification details directly to the red-teaming LLM generator. Arishem statically extracts these docstrings and injects them into the attack prompts to formulate more targeted test payloads.*
+
 ### Run Pentest directly via CLI
 ```bash
 python3 -m arishem.cli run target_example.py --output results.json

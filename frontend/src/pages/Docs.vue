@@ -149,6 +149,7 @@ const copyToClipboard = async (text: string, id: string) => {
                 <li><strong>Input/Output:</strong> Functions should accept a string prompt/message and return a string response.</li>
                 <li><strong>No Arishem Imports:</strong> Do not import <code>arishem</code> inside target files.</li>
                 <li><strong>Dependencies:</strong> Store any required pip packages in a <code>requirements.txt</code> file in the same directory as the target script.</li>
+                <li><strong>Docstrings as Instructions:</strong> You can pass custom testing instructions or context via function docstrings (e.g. describing parameter limits, session keys, API keys). The Arishem engine statically reads the docstring and feeds it directly to the red-teaming LLM probe generator to target attacks.</li>
               </ul>
             </div>
           </section>
