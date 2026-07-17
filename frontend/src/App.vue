@@ -46,6 +46,13 @@ const closeSidebar = () => {
         <main class="content">
           <RouterView />
         </main>
+        <footer class="site-footer">
+          <div class="footer-content">
+            <span class="footer-brand">Arishem</span>
+            <span class="footer-version">v1.0.0</span>
+            <span class="footer-copy">&copy; {{ new Date().getFullYear() }} Security Testing Platform</span>
+          </div>
+        </footer>
       </div>
     </SignedIn>
     <SignedOut>
@@ -61,6 +68,13 @@ const closeSidebar = () => {
         <main class="content">
           <RouterView />
         </main>
+        <footer class="site-footer">
+          <div class="footer-content">
+            <span class="footer-brand">Arishem</span>
+            <span class="footer-version">v1.0.0</span>
+            <span class="footer-copy">&copy; {{ new Date().getFullYear() }} Security Testing Platform</span>
+          </div>
+        </footer>
       </div>
       <!-- Otherwise render RouterView (which renders custom sign-in/sign-up page) -->
       <RouterView v-else />
@@ -537,6 +551,48 @@ button:active {
     width: 32px;
     height: 32px;
     font-size: 12px;
+  }
+}
+
+.site-footer {
+  padding: 16px 32px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.footer-brand {
+  font-family: 'Orbitron', sans-serif;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.footer-version {
+  font-family: 'Share Tech Mono', monospace;
+  color: var(--text-muted);
+}
+
+.footer-copy {
+  color: var(--text-muted);
+}
+
+@media (max-width: 768px) {
+  .site-footer {
+    padding: 12px 16px;
+  }
+
+  .footer-content {
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 11px;
   }
 }
 </style>
