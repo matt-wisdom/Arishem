@@ -5,7 +5,12 @@ export const apiUrl = (path: string) => {
   return `${API_BASE}${cleanPath}`
 }
 
+let isRedirecting = false
+
 export const handleUnauthorized = () => {
+  if (isRedirecting) return
+  if (window.location.pathname === '/sign-in' || window.location.pathname === '/sign-up') return
+  isRedirecting = true
   localStorage.removeItem('token')
-  window.location.href = '/sign-in'
+  window.location.replace('/sign-in')
 }
