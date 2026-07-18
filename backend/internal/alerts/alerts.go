@@ -28,6 +28,7 @@ type AlertPayload struct {
 
 func DispatchAlerts(ctx context.Context, orgID string, payload AlertPayload) {
 	// Send transactional email to user if email is set
+	log.Printf("DispatchAlerts: UserEmail=%q, ScanID=%s", payload.UserEmail, payload.ScanID)
 	if payload.UserEmail != "" {
 		go func() {
 			if err := sendEmailDirect(payload.UserEmail, payload); err != nil {
@@ -36,6 +37,8 @@ func DispatchAlerts(ctx context.Context, orgID string, payload AlertPayload) {
 				log.Printf("Sent transactional email to %s for scan %s", payload.UserEmail, payload.ScanID)
 			}
 		}()
+	} else {
+		log.Printf("No user email provided, skipping transactional email")
 	}
 
 	orgUUID, _ := uuid.Parse(orgID)
@@ -113,6 +116,11 @@ func sendEmail(config map[string]interface{}, payload AlertPayload) error {
 }
 
 func sendEmailDirect(to string, payload AlertPayload) error {
+	log.Printf("sendEmailDirect: to=%s, findings=%d, scanID=%s", to, payload.FindingCount, payload.ScanID)
+	
+	resendKey := os.Getenv("RESEND_API_KEY")
+	log.Printf("sendEmailDirect: RESEND_API_KEY set = %v", resendKey != "")
+	
 	subject := fmt.Sprintf("[Arishem] Scan Complete - %d findings", payload.FindingCount)
 	htmlBody := fmt.Sprintf(`
 		<h2>Arishem Scan Complete</h2>
@@ -179,6 +187,8 @@ Log in to Arishem to view the full report.
 }
 
 func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
+	log.Printf("sendEmailResend: to=%s, subject=%s", to, subject)
+	
 	client := resend.NewClient(apiKey)
 
 	params := &resend.SendEmailRequest{
@@ -189,11 +199,13 @@ func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
 		Text:    textBody,
 	}
 
-	_, err := client.Emails.Send(params)
+	resp, err := client.Emails.Send(params)
 	if err != nil {
-		log.Printf("Resend error: %v", err)
+		log.Printf("Resend API error: %v", err)
+		return err
 	}
-	return err
+	log.Printf("Resend response: %+v", resp)
+	return nil
 }
 
 func sendEmailSMTP(addr, subject, body string) error {
