@@ -693,16 +693,10 @@ const copyToClipboard = async (text: string, id: string) => {
 }
 
 .deploy-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 20px;
   margin-top: 18px;
-}
-
-@media (max-width: 768px) {
-  .deploy-grid {
-    grid-template-columns: 1fr;
-  }
 }
 
 .deploy-card {
