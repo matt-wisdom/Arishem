@@ -146,7 +146,6 @@ Report: %s
 - Arishem
 `, payload.FindingCount, payload.Severity, payload.ScanID, payload.ReportURL)
 
-	resendKey := os.Getenv("RESEND_API_KEY")
 	if resendKey != "" {
 		return sendEmailResend(resendKey, to, subject, htmlBody, textBody)
 	}
