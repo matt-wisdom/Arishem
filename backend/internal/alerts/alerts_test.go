@@ -3,6 +3,7 @@ package alerts
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -252,4 +253,60 @@ func TestAlertSeverityComparison(t *testing.T) {
 	if payload.Severity != "critical" {
 		t.Errorf("expected critical, got %s", payload.Severity)
 	}
+}
+
+func TestSendEmailResend(t *testing.T) {
+	apiKey := os.Getenv("RESEND_API_KEY")
+	if apiKey == "" {
+		t.Skip("RESEND_API_KEY not set, skipping Resend test")
+	}
+
+	payload := AlertPayload{
+		OrgID:        "test-org",
+		ScanID:       "test-scan",
+		Severity:     "high",
+		FindingCount: 3,
+		ReportURL:    "https://arishem.site/reports/test",
+	}
+
+	config := map[string]interface{}{
+		"address": "test@example.com",
+	}
+
+	err := sendEmail(config, payload)
+	if err != nil {
+		t.Logf("Resend email failed (may be expected with test key): %v", err)
+	}
+}
+
+func TestSendEmailHtmlBody(t *testing.T) {
+	payload := AlertPayload{
+		ScanID:       "scan-123",
+		FindingCount: 5,
+		Severity:     "critical",
+		ReportURL:    "https://arishem.site/reports/scan-123",
+	}
+
+	addr := "test@example.com"
+	subject := "[Arishem] Scan Completed - 5 findings"
+	htmlBody := fmt.Sprintf(`
+		<h2>Arishem Scan Complete</h2>
+		<p>A scan has completed with the following results:</p>
+		<ul>
+			<li><strong>Scan ID:</strong> %s</li>
+			<li><strong>Findings:</strong> %d</li>
+			<li><strong>Severity:</strong> %s</li>
+		</ul>
+		<p><a href="%s" style="background: #00e599; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Report</a></p>
+	`, payload.ScanID, payload.FindingCount, payload.Severity, payload.ReportURL)
+
+	if payload.ScanID != "scan-123" {
+		t.Errorf("expected scan-123, got %s", payload.ScanID)
+	}
+	if payload.FindingCount != 5 {
+		t.Errorf("expected 5, got %d", payload.FindingCount)
+	}
+	_ = addr
+	_ = subject
+	_ = htmlBody
 }

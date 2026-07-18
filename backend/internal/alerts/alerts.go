@@ -14,7 +14,7 @@ import (
 	"arishem/internal/models"
 
 	"github.com/google/uuid"
-	"github.com/resend/resend-go/v2"
+	"github.com/resend/resend-go/v3"
 )
 
 type AlertPayload struct {
@@ -123,17 +123,17 @@ Log in to Arishem to view the full report.
 }
 
 func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
-	resend.api_key = apiKey
+	client := resend.NewClient(apiKey)
 
-	params := &resend.EmailsSendParams{
+	params := &resend.SendEmailRequest{
 		From:    "Arishem Alerts <alerts@arishem.site>",
 		To:      []string{to},
 		Subject: subject,
-		Html:    &htmlBody,
-		Text:    &textBody,
+		Html:    htmlBody,
+		Text:    textBody,
 	}
 
-	_, err := resend.Emails.Send(params)
+	_, err := client.Emails.Send(params)
 	return err
 }
 
