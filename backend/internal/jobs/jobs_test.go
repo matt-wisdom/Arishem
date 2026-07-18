@@ -37,7 +37,7 @@ func TestNewScanTaskDefaultBranch(t *testing.T) {
 }
 
 func TestNewLLMPentestTask(t *testing.T) {
-	task := NewLLMPentestTask("org_123", "run_456", "https://api.example.com/chat", "sk-test", []string{"prompt_injection", "jailbreak"}, "gpt-4", "openai", "", "both", 8, 4, false, "custom")
+	task := NewLLMPentestTask("org_123", "run_456", "https://api.example.com/chat", "sk-test", []string{"prompt_injection", "jailbreak"}, "gpt-4", "openai", "", "both", 8, 4, false, "custom", "test@example.com")
 
 	if task.OrgID != "org_123" {
 		t.Errorf("expected OrgID org_123, got %s", task.OrgID)
@@ -68,7 +68,7 @@ func TestEnqueueScanTask(t *testing.T) {
 
 func TestEnqueueLLMPentestTask(t *testing.T) {
 	// Just verify it doesn't panic and returns nil (runs async)
-	task := NewLLMPentestTask("org_123", "run_456", "https://api.example.com/chat", "sk-test", []string{"prompt_injection"}, "gpt-4", "openai", "", "both", 8, 4, false, "custom")
+	task := NewLLMPentestTask("org_123", "run_456", "https://api.example.com/chat", "sk-test", []string{"prompt_injection"}, "gpt-4", "openai", "", "both", 8, 4, false, "custom", "test@example.com")
 	err := EnqueueLLMPentestTask(context.Background(), task)
 	
 	if err != nil {
