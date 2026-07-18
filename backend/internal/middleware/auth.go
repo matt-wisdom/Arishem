@@ -10,6 +10,7 @@ import (
 	"math/big"
 	"net/http"
 	"os"
+	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -148,19 +149,23 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	}
 
 	c.Locals("user_id", claims["sub"])
+	log.Printf("JWT claims keys: %v", reflect.ValueOf(claims).MapKeys())
 	
-	// Log all claims for debugging
-	log.Printf("Clerk claims: %+v", claims)
-	
-	// Try to get email from various claim paths
-	if email, ok := claims["email"].(string); ok {
-		c.Locals("user_email", email)
-		log.Printf("Set user_email from 'email' claim: %s", email)
+	// Try various Clerk email claim keys
+	email := ""
+	if e, ok := claims["email"].(string); ok {
+		email = e
+	} else if e, ok := claims["email_address"].(string); ok {
+		email = e
+	} else if emailObj, ok := claims["email"].(map[string]interface{}); ok {
+		if e, ok := emailObj["email_address"].(string); ok {
+			email = e
+		}
 	}
-	// Clerk may put email in "email_address" or nested in "public_metadata"
-	if email, ok := claims["email_address"].(string); ok {
+	
+	if email != "" {
+		log.Printf("Found user email: %s", email)
 		c.Locals("user_email", email)
-		log.Printf("Set user_email from 'email_address' claim: %s", email)
 	}
 	if fn, ok := claims["first_name"].(string); ok {
 		c.Locals("user_first_name", fn)

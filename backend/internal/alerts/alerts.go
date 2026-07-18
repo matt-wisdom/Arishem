@@ -14,7 +14,7 @@ import (
 	"arishem/internal/models"
 
 	"github.com/google/uuid"
-	"github.com/resend/resend-go/v2"
+	"github.com/resend/resend-go/v3"
 )
 
 type AlertPayload struct {
