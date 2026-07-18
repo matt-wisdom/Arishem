@@ -4,10 +4,10 @@ RUN apk add --no-cache gcc musl-dev
 
 WORKDIR /app
 
-COPY go.mod go.sum ./
+COPY backend/go.mod backend/go.sum ./
 RUN go mod download
 
-COPY . .
+COPY backend/ .
 
 RUN CGO_ENABLED=1 GOOS=linux go build -o /server ./cmd/server
 
@@ -19,8 +19,8 @@ WORKDIR /app
 
 COPY --from=builder /server .
 
-# Arishem source will be provided at runtime via volume mount
-# See docker-compose.yml volumes section
+COPY pyproject.toml arishem ./
+RUN pip install --no-deps --break-system-packages -e /app
 
 EXPOSE 8080
 
