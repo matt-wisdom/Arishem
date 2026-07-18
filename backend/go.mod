@@ -10,7 +10,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/mattn/go-sqlite3 v1.14.48
 	github.com/minio/minio-go/v7 v7.0.69
-	github.com/resend/resend-go/v3 v3.10.1
+	github.com/resend/resend-go/v2 v2.28.0
 	golang.org/x/oauth2 v0.0.0-20180821212333-d2e6202438be
 )
 
