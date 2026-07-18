@@ -15,12 +15,14 @@ FROM alpine:3.19
 
 RUN apk add --no-cache ca-certificates docker-cli python3 py3-pip
 
+RUN python3 -m pip install --break-system-packages --upgrade pip setuptools wheel
+
 WORKDIR /app
 
 COPY --from=builder /server .
 
 COPY pyproject.toml arishem ./
-RUN pip install --no-deps --break-system-packages -e /app
+RUN pip install --break-system-packages -e /app
 
 EXPOSE 8080
 
