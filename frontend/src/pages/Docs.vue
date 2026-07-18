@@ -143,6 +143,21 @@ const copyToClipboard = async (text: string, id: string) => {
           </section>
 
           <section class="docs-section">
+            <h2>Pricing & Limits</h2>
+            <p>
+              Arishem currently offers a <strong>free tier</strong> with the following limits:
+            </p>
+            <ul style="margin-top: 12px; line-height: 1.8;">
+              <li>Maximum <strong>3 runs per day</strong></li>
+              <li>Maximum <strong>5 turns per class</strong> (budget cap)</li>
+            </ul>
+            <p style="margin-top: 16px;">
+              We're evaluating demand for a paid tier with higher limits, unlimited turns, and priority support. 
+              If you're interested, <a href="mailto:matthewwisdom11@gmail.com" style="color: var(--accent);">let us know</a>!
+            </p>
+          </section>
+
+          <section class="docs-section">
             <h2>Writing Tests for Arishem</h2>
             <p>
               Arishem is designed to execute autonomous penetration testing loops against target endpoints. 
