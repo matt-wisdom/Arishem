@@ -14,6 +14,7 @@ import (
 	"arishem/internal/models"
 
 	"github.com/google/uuid"
+	"github.com/resend/resend-go/v2"
 )
 
 type AlertPayload struct {
@@ -89,6 +90,54 @@ func sendEmail(config map[string]interface{}, payload AlertPayload) error {
 		return fmt.Errorf("email address not configured")
 	}
 
+	subject := fmt.Sprintf("[Arishem] Scan Completed - %d findings", payload.FindingCount)
+	htmlBody := fmt.Sprintf(`
+		<h2>Arishem Scan Complete</h2>
+		<p>A scan has completed with the following results:</p>
+		<ul>
+			<li><strong>Scan ID:</strong> %s</li>
+			<li><strong>Findings:</strong> %d</li>
+			<li><strong>Severity:</strong> %s</li>
+		</ul>
+		<p><a href="%s" style="background: #00e599; color: #000; padding: 10px 20px; text-decoration: none; border-radius: 4px;">View Report</a></p>
+	`, payload.ScanID, payload.FindingCount, payload.Severity, payload.ReportURL)
+
+	textBody := fmt.Sprintf(`Arishem Scan Complete
+
+Scan ID: %s
+Findings: %d
+Severity: %s
+Report: %s
+
+Log in to Arishem to view the full report.
+`, payload.ScanID, payload.FindingCount, payload.Severity, payload.ReportURL)
+
+	// Try Resend first if API key is set
+	resendKey := os.Getenv("RESEND_API_KEY")
+	if resendKey != "" {
+		return sendEmailResend(resendKey, addr, subject, htmlBody, textBody)
+	}
+
+	// Fall back to SMTP
+	return sendEmailSMTP(addr, subject, textBody)
+}
+
+func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
+	resend.api_key = apiKey
+
+	params := &resend.EmailsSendParams{
+		From:    "Arishem Alerts <alerts@arishem.site>",
+		To:      []string{to},
+		Subject: subject,
+		Html:    &htmlBody,
+		Text:    &textBody,
+	}
+
+	_, err := resend.Emails.Send(params)
+	return err
+}
+
+func sendEmailSMTP(addr, subject, body string) error {
 	host := os.Getenv("SMTP_HOST")
 	port := os.Getenv("SMTP_PORT")
 	user := os.Getenv("SMTP_USER")
@@ -106,24 +155,10 @@ func sendEmail(config map[string]interface{}, payload AlertPayload) error {
 		from = user
 	}
 
-	subject := fmt.Sprintf("[Arishem] Scan Completed - %d findings", payload.FindingCount)
-	body := fmt.Sprintf(`A scan has completed with the following results:
-
-Org ID: %s
-Scan ID: %s
-Finding Count: %d
-Severity: %s
-Report URL: %s
-
-Log in to Arishem to view the full report.
-`, payload.OrgID, payload.ScanID, payload.FindingCount, payload.Severity, payload.ReportURL)
-
 	msg := fmt.Sprintf("From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n%s", from, addr, subject, body)
 
 	auth := smtp.PlainAuth("", user, pass, host)
-	err := smtp.SendMail(host+":"+port, auth, from, []string{addr}, []byte(msg))
-
-	return err
+	return smtp.SendMail(host+":"+port, auth, from, []string{addr}, []byte(msg))
 }
 
 func sendSlack(config map[string]interface{}, payload AlertPayload) error {
