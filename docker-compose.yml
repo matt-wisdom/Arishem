@@ -50,7 +50,9 @@ services:
       - SMTP_USER=${SMTP_USER}
       - SMTP_PASS=${SMTP_PASS}
       - EXPECTS_UNSAFE_CODE=true
+      - MAX_TURN=${MAX_TURN}
       - ARISHEM_HOST_PATH=~/Arishem/
+      
 
     volumes:
       - ./backend/data:/var/lib/arishem

@@ -4,7 +4,7 @@
 # LLM Provider: "gemini", "openai", or "mock" (for testing)
 provider = "openai"
 # Specific model identifier to use
-model = "qwen.qwen3-coder-30b-a3b-v1:0"
+model = "google.gemma-3-27b-it"
 # API keys are read from environment variables (GEMINI_API_KEY / OPENAI_API_KEY)
 # but can optionally be specified here if needed.
 # api_key = "..."
