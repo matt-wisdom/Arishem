@@ -18,14 +18,26 @@ import (
 )
 
 type AlertPayload struct {
-	OrgID       string
-	ScanID      string
-	Severity    string
+	OrgID        string
+	ScanID       string
+	Severity     string
 	FindingCount int
-	ReportURL   string
+	ReportURL    string
+	UserEmail    string
 }
 
 func DispatchAlerts(ctx context.Context, orgID string, payload AlertPayload) {
+	// Send transactional email to user if email is set
+	if payload.UserEmail != "" {
+		go func() {
+			if err := sendEmailDirect(payload.UserEmail, payload); err != nil {
+				log.Printf("Failed to send transactional email to %s: %v", payload.UserEmail, err)
+			} else {
+				log.Printf("Sent transactional email to %s for scan %s", payload.UserEmail, payload.ScanID)
+			}
+		}()
+	}
+
 	orgUUID, _ := uuid.Parse(orgID)
 
 	rows, err := db.GetPool().Query(ctx, `
@@ -86,10 +98,54 @@ func sendAlert(rule models.AlertRule, payload AlertPayload) {
 
 func sendEmail(config map[string]interface{}, payload AlertPayload) error {
 	addr, _ := config["address"].(string)
+	
+	// If UserEmail is set in payload, send directly to them (transactional)
+	if payload.UserEmail != "" {
+		return sendEmailDirect(payload.UserEmail, payload)
+	}
+	
+	// Otherwise use alert rule config
 	if addr == "" {
 		return fmt.Errorf("email address not configured")
 	}
 
+	return sendEmailToAddr(addr, payload)
+}
+
+func sendEmailDirect(to string, payload AlertPayload) error {
+	subject := fmt.Sprintf("[Arishem] Scan Complete - %d findings", payload.FindingCount)
+	htmlBody := fmt.Sprintf(`
+		<h2>Arishem Scan Complete</h2>
+		<p>Your pentest has finished running. Here are the results:</p>
+		<ul>
+			<li><strong>Findings:</strong> %d</li>
+			<li><strong>Severity:</strong> %s</li>
+			<li><strong>Scan ID:</strong> %s</li>
+		</ul>
+		<p><a href="%s" style="background: #00e599; color: #000; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">View Full Report</a></p>
+		<p style="color: #666; font-size: 12px; margin-top: 20px;">You're receiving this because you started this scan. Manage your email preferences in Arishem settings.</p>
+	`, payload.FindingCount, payload.Severity, payload.ScanID, payload.ReportURL)
+
+	textBody := fmt.Sprintf(`Arishem Scan Complete
+
+Your pentest has finished. 
+
+Findings: %d
+Severity: %s
+Scan ID: %s
+Report: %s
+
+- Arishem
+`, payload.FindingCount, payload.Severity, payload.ScanID, payload.ReportURL)
+
+	resendKey := os.Getenv("RESEND_API_KEY")
+	if resendKey != "" {
+		return sendEmailResend(resendKey, to, subject, htmlBody, textBody)
+	}
+	return sendEmailSMTP(to, subject, textBody)
+}
+
+func sendEmailToAddr(addr string, payload AlertPayload) error {
 	subject := fmt.Sprintf("[Arishem] Scan Completed - %d findings", payload.FindingCount)
 	htmlBody := fmt.Sprintf(`
 		<h2>Arishem Scan Complete</h2>
@@ -126,7 +182,7 @@ func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
 	client := resend.NewClient(apiKey)
 
 	params := &resend.SendEmailRequest{
-		From:    "Arishem Alerts <alerts@arishem.site>",
+		From:    "Arishem <alerts@arishem.site>",
 		To:      []string{to},
 		Subject: subject,
 		Html:    htmlBody,
@@ -134,6 +190,9 @@ func sendEmailResend(apiKey, to, subject, htmlBody, textBody string) error {
 	}
 
 	_, err := client.Emails.Send(params)
+	if err != nil {
+		log.Printf("Resend error: %v", err)
+	}
 	return err
 }
 
