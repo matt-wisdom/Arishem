@@ -52,6 +52,7 @@ services:
       - RESEND_API_KEY=${RESEND_API_KEY}
       - EXPECTS_UNSAFE_CODE=true
       - MAX_TURN=${MAX_TURN}
+      - MAX_RUNS_PER_DAY=${MAX_RUNS_PER_DAY}
       - ARISHEM_HOST_PATH=/home/admin/Arishem/
 
     volumes:

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 
 const integrations = ref([
-  { id: 'github', name: 'GitHub', description: 'Connect repositories for code scanning', icon: 'github' },
+  // { id: 'github', name: 'GitHub', description: 'Connect repositories for ', icon: 'github' },
   { id: 'slack', name: 'Slack', description: 'Receive alerts in Slack channels', icon: 'slack' },
   { id: 'jira', name: 'Jira', description: 'Create tickets from findings', icon: 'jira' },
 ])
