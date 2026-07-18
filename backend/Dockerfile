@@ -20,7 +20,7 @@ WORKDIR /app
 COPY --from=builder /server .
 
 COPY pyproject.toml arishem ./
-RUN pip install --no-deps -e .
+RUN pip install --no-deps --break-system-packages -e .
 
 EXPOSE 8080
 
