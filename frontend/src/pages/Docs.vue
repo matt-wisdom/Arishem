@@ -124,6 +124,12 @@ const copyToClipboard = async (text: string, id: string) => {
             <p>
               Arishem is a state-of-the-art autonomous security scanner and AI red-teaming platform. It enables security engineers and developers to stress-test their LLM applications, agentic workflows, and web services against advanced cyber threats, jailbreaks, and prompt injections.
             </p>
+            <p style="margin-top: 12px;">
+              <strong>Arishem is open source!</strong> View the source code on <a href="https://github.com/matt-wisdom/Arishem" target="_blank" style="color: var(--accent);">GitHub</a>.
+            </p>
+            <p style="margin-top: 8px; color: var(--text-muted); font-size: 13px;">
+              Contact: <a href="mailto:matthewwisdom11@gmail.com" style="color: var(--accent);">matthewwisdom11@gmail.com</a>
+            </p>
             <div class="intro-features" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 20px;">
               <div class="feature-badge" style="background: rgba(255, 0, 127, 0.05); border: 1px solid rgba(255, 0, 127, 0.15); padding: 14px; border-radius: 8px;">
                 <h4 style="color: var(--accent-pink); font-size: 13px; margin-bottom: 6px;">🧠 LLM Pentesting</h4>

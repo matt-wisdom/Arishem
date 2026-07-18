@@ -4,7 +4,7 @@
   <img src="frontend/src/logo.jpeg" alt="Arishem Logo" width="160" height="160" style="border-radius: 12px;" />
 </p>
 
-Arishem is a security testing platform designed to discover prompt injection, jailbreaks, data leakage, and boundary failures in LLM-based applications, agentic workflows, and APIs.
+**[Arishem](https://arishem.site)** is an open-source security testing platform designed to discover prompt injection, jailbreaks, data leakage, and boundary failures in LLM-based applications, agentic workflows, and APIs.
 
 The project is organized as a multi-tier system:
 1. **Python Engine (`arishem/`)**: Core CLI and test runner that parses target function signatures via AST, executes multi-turn adversarial red-teaming loops, and judges responses using schema-constrained models.
