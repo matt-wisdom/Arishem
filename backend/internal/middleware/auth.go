@@ -147,8 +147,19 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	}
 
 	c.Locals("user_id", claims["sub"])
+	
+	// Log all claims for debugging
+	log.Printf("Clerk claims: %+v", claims)
+	
+	// Try to get email from various claim paths
 	if email, ok := claims["email"].(string); ok {
 		c.Locals("user_email", email)
+		log.Printf("Set user_email from 'email' claim: %s", email)
+	}
+	// Clerk may put email in "email_address" or nested in "public_metadata"
+	if email, ok := claims["email_address"].(string); ok {
+		c.Locals("user_email", email)
+		log.Printf("Set user_email from 'email_address' claim: %s", email)
 	}
 	if fn, ok := claims["first_name"].(string); ok {
 		c.Locals("user_first_name", fn)
