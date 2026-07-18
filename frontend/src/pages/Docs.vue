@@ -82,17 +82,165 @@ async def arishem_chat(user_message: str) -> str:
 
 const llmPrompt = `You are an expert AI software engineer. Generate a target Python test script and its corresponding \`requirements.txt\` file for Arishem, an Autonomous AI Security Penetration Testing Engine.
 
+### What is Arishem?
+Arishem is an AI red-teaming platform that tests LLM applications for security vulnerabilities like prompt injection, jailbreaks, data leakage, and tool misuse. It works by:
+1. Analyzing your target function's signature and docstrings
+2. Generating adversarial prompts to probe for vulnerabilities
+3. Evaluating responses to classify findings
+
 ### Arishem Target Requirements:
-1. Target scripts must expose testing functions prefixing with \`arishem_\` (e.g. \`arishem_chat(user_message: str) -> str: ...\` or \`async def arishem_agent(input_text: str) -> str: ...\`).
-2. Do NOT import \`arishem\` inside the target script; the target script should be fully self-contained or import third-party packages needed to query the application (e.g. \`requests\`, \`openai\`, \`websockets\`, \`google-genai\`).
-3. For WebSocket targets, implement a connection cache that isolates connections per asyncio Task context (e.g. \`asyncio.current_task()\`) to support concurrent probe sessions safely.
-4. Any required packages must be documented in a corresponding \`requirements.txt\` file in the same directory.
+1. **Function Prefix**: All test functions MUST start with \`arishem_\` (e.g., \`arishem_chat\`, \`arishem_agent\`, \`arishem_complete\`).
+2. **Function Signature**: Functions must accept a string and return a string:
+   \`\`\`python
+   def arishem_chat(user_message: str) -> str:
+       # Your code here
+       return response
+   \`\`\`
+3. **Async Support**: Use \`async def\` if your target requires async I/O (WebSocket, httpx async, etc.):
+   \`\`\`python
+   async def arishem_chat(user_message: str) -> str:
+       # Your async code here
+       return response
+   \`\`\`
+4. **No Arishem Imports**: Do NOT import the \`arishem\` package in your target script.
+5. **WebSocket Connections**: Must cache connections per asyncio Task to support concurrent sessions:
+   \`\`\`python
+   import asyncio
+   _ws_cache = {}
+
+   async def _get_ws():
+       task = asyncio.current_task()
+       if task not in _ws_cache:
+           _ws_cache[task] = await websockets.connect("wss://...")
+       return _ws_cache[task]
+
+   async def arishem_chat(user_message: str) -> str:
+       ws = await _get_ws()
+       await ws.send(user_message)
+       return await ws.recv()
+   \`\`\`
+6. **Docstrings**: Use docstrings to give Arishem context about your API, rate limits, authentication, etc.:
+   \`\`\`python
+   def arishem_chat(prompt: str) -> str:
+       """
+       AI assistant endpoint accepting user messages.
+       - Endpoint: POST https://api.example.com/chat
+       - Auth: Bearer token in Authorization header
+       - Rate limit: 10 req/min
+       - Returns JSON with "response" field
+       """
+   \`\`\`
+7. **Dependencies**: List all pip packages in \`requirements.txt\`.
+
+### Example 1: Simple HTTP API
+\`\`\`python
+import requests
+
+API_BASE = "https://api.example.com/v1"
+
+def arishem_chat(user_message: str) -> str:
+    """
+    Chat endpoint for the AI assistant.
+    - Accepts JSON: {"message": "..."}
+    - Returns: {"reply": "..."}
+    """
+    resp = requests.post(
+        f"{API_BASE}/chat",
+        json={"message": user_message},
+        headers={"Authorization": f"Bearer {API_KEY}"},
+        timeout=30
+    )
+    data = resp.json()
+    return data.get("reply", "")
+\`\`\`
+requirements.txt:
+\`\`\`
+requests>=2.31.0
+\`\`\`
+
+### Example 2: OpenAI ChatGPT API
+\`\`\`python
+from openai import OpenAI
+
+client = OpenAI(api_key="sk-...")
+
+def arishem_chat(user_message: str) -> str:
+    """
+    Direct OpenAI GPT-4 chat API.
+    """
+    resp = client.chat.completions.create(
+        model="gpt-4",
+        messages=[{"role": "user", "content": user_message}]
+    )
+    return resp.choices[0].message.content or ""
+\`\`\`
+requirements.txt:
+\`\`\`
+openai>=1.0.0
+\`\`\`
+
+### Example 3: WebSocket Chat
+\`\`\`python
+import asyncio
+import json
+import websockets
+
+_ws_connections = {}
+
+async def _get_connection():
+    task = asyncio.current_task()
+    if task not in _ws_connections:
+        _ws_connections[task] = await websockets.connect("wss://chat.example.com/ws")
+    return _ws_connections[task]
+
+async def arishem_chat(user_message: str) -> str:
+    """
+    WebSocket chat interface.
+    - Send: {"type": "message", "content": "..."}
+    - Receive: {"type": "response", "text": "..."}
+    """
+    ws = await _get_connection()
+    await ws.send(json.dumps({"type": "message", "content": user_message}))
+    resp = await ws.recv()
+    data = json.loads(resp)
+    return data.get("text", "")
+\`\`\`
+requirements.txt:
+\`\`\`
+websockets>=12.0
+\`\`\`
+
+### Example 4: Gemini via google-generativeai
+\`\`\`python
+import google.generativeai as genai
+
+genai.configure(api_key="...")
+model = genai.GenerativeModel("gemini-pro")
+
+def arishem_complete(prompt: str) -> str:
+    """
+    Gemini Pro text completion endpoint.
+    """
+    resp = model.generate_content(prompt)
+    return resp.text or ""
+\`\`\`
+requirements.txt:
+\`\`\`
+google-generativeai>=0.8.0
+\`\`\`
 
 ### Task:
-Generate a target script for a whitebox/blackbox penetration test against:
-[INSERT YOUR AI ENDPOINT DESCRIPTION HERE]
+Now generate a target script and requirements.txt for the following AI endpoint:
 
-Provide the python code and the requirements.txt content.`
+[REPLACE THIS WITH YOUR ENDPOINT DESCRIPTION]
+For example:
+- "A REST API at https://api.myai.com/chat that accepts JSON with 'prompt' field and returns 'answer'"
+- "A WebSocket endpoint at wss://assistant.example.com that echoes responses"
+- "OpenAI-compatible API at https://my-llm.com/v1 using custom API key"
+
+Provide:
+1. The complete \`target.py\` file
+2. The complete \`requirements.txt\` file`
 
 const copyToClipboard = async (text: string, id: string) => {
   try {
@@ -352,7 +500,7 @@ const copyToClipboard = async (text: string, id: string) => {
               <h3>Generate Tests with LLM</h3>
             </div>
             <p>
-              Copy this context prompt and paste it into ChatGPT, Claude, or Gemini to automatically write target test scripts and dependency requirements for your application:
+              Copy this comprehensive prompt and paste it into ChatGPT, Claude, or Gemini to automatically generate target test scripts and requirements.txt for your AI endpoint:
             </p>
             <div class="prompt-container">
               <textarea readonly :value="llmPrompt" class="prompt-textarea"></textarea>
