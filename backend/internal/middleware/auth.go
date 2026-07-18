@@ -10,7 +10,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"reflect"
 	"strings"
 	"sync"
 	"time"
@@ -149,22 +148,24 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	}
 
 	c.Locals("user_id", claims["sub"])
-	log.Printf("JWT claims keys: %v", reflect.ValueOf(claims).MapKeys())
 	
-	// Try various Clerk email claim keys
+	// Try to get email from claims
 	email := ""
 	if e, ok := claims["email"].(string); ok {
 		email = e
 	} else if e, ok := claims["email_address"].(string); ok {
 		email = e
-	} else if emailObj, ok := claims["email"].(map[string]interface{}); ok {
-		if e, ok := emailObj["email_address"].(string); ok {
-			email = e
+	}
+	
+	// If no email in token, fetch from Clerk API
+	if email == "" {
+		userID, _ := claims["sub"].(string)
+		if userID != "" {
+			email = fetchUserEmailFromClerk(userID)
 		}
 	}
 	
 	if email != "" {
-		log.Printf("Found user email: %s", email)
 		c.Locals("user_email", email)
 	}
 	if fn, ok := claims["first_name"].(string); ok {
@@ -250,4 +251,57 @@ func GetUserFirstName(c *fiber.Ctx) string {
 func GetUserLastName(c *fiber.Ctx) string {
 	lastName, _ := c.Locals("user_last_name").(string)
 	return lastName
+}
+
+func fetchUserEmailFromClerk(userID string) string {
+	clerkSecret := os.Getenv("CLERK_SECRET_KEY")
+	if clerkSecret == "" {
+		return ""
+	}
+	
+	url := "https://api.clerk.com/v1/users/" + userID
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("Authorization", "Bearer "+clerkSecret)
+	req.Header.Set("Content-Type", "application/json")
+	
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Printf("Failed to fetch Clerk user: %v", err)
+		return ""
+	}
+	defer resp.Body.Close()
+	
+	if resp.StatusCode != 200 {
+		log.Printf("Clerk API returned status %d", resp.StatusCode)
+		return ""
+	}
+	
+	var userData map[string]interface{}
+	if err := json.NewDecoder(resp.Body).Decode(&userData); err != nil {
+		return ""
+	}
+	
+	// Try email_addresses array
+	if emails, ok := userData["email_addresses"].([]interface{}); ok && len(emails) > 0 {
+		if emailObj, ok := emails[0].(map[string]interface{}); ok {
+			if email, ok := emailObj["email_address"].(string); ok {
+				return email
+			}
+		}
+	}
+	
+	// Try primary_email_address_id
+	if primaryID, ok := userData["primary_email_address_id"].(string); ok && primaryID != "" {
+		for _, e := range userData["email_addresses"].([]interface{}) {
+			if emailObj, ok := e.(map[string]interface{}); ok {
+				if id, ok := emailObj["id"].(string); ok && id == primaryID {
+					if email, ok := emailObj["email_address"].(string); ok {
+						return email
+					}
+				}
+			}
+		}
+	}
+	
+	return ""
 }
