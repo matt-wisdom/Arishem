@@ -90,6 +90,20 @@ async def handle_run(args):
     if args.classes:
         classes_list = [c.strip() for c in args.classes.split(",") if c.strip()]
 
+    # Check MAX_TURN env var
+    budget = args.budget
+    if budget is None:
+        budget = 8
+    max_turn = os.environ.get("MAX_TURN")
+    if max_turn:
+        try:
+            max_turn_int = int(max_turn)
+            if max_turn_int < budget:
+                budget = max_turn_int
+                console.print(f"[yellow]MAX_TURN env cap applied: {budget} turns[/yellow]")
+        except ValueError:
+            pass
+
     target_path = args.target
     if not os.path.exists(target_path):
         console.print(f"[bold red]Error: Target file '{target_path}' does not exist.[/bold red]")
@@ -125,7 +139,7 @@ async def handle_run(args):
                     function_spec=spec,
                     attack_class=acid,
                     goal="",
-                    budget=args.budget or 8
+                    budget=budget
                 ))
 
         if not dummy_sessions:
@@ -149,7 +163,7 @@ async def handle_run(args):
             target_path=target_path,
             mode=args.mode,
             classes=classes_list,
-            budget=args.budget,
+            budget=budget,
             concurrency=args.concurrency,
             config_path=args.config,
             on_turn_callback=on_turn,
